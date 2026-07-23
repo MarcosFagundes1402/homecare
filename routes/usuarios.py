@@ -1,103 +1,185 @@
-from flask import Flask, jsonify, request
+from flask import jsonify, request, Blueprint
 from database.connect import connect
+import sqlite3
 
-app = Flask(__name__)
-
-usuarios = [
-    {
-        "id": 1,
-        "nome": "Lucas Seixas",
-        "email": "lucas@careplus.com",
-        "senha": "123456",
-        "role": "ADMIN"
-    },
-    {
-        "id": 2,
-        "nome": "Marcos Fagundes",
-        "email": "marcos@careplus.com",
-        "senha": "123456",
-        "role": "CUIDADOR"
-    },
-    {
-        "id": 3,
-        "nome": "Ana Souza",
-        "email": "ana@email.com",
-        "senha": "123456",
-        "role": "CUIDADOR"
-    },
-    {
-        "id": 4,
-        "nome": "Carlos Pereira",
-        "email": "carlos@email.com",
-        "senha": "123456",
-        "role": "FAMILIAR"
-    },
-    {
-        "id": 5,
-        "nome": "Maria Aparecida",
-        "email": "maria@email.com",
-        "senha": "123456",
-        "role": "PACIENTE"
-    }
-]
-
+usuario_bp = Blueprint("usuarios", __name__)
 usuario_logado = {
-        "id": 1,
-        "nome": "Lucas Seixas",
-        "email": "lucas@careplus.com",
-        "senha": "123456",
-        "role": "ADMIN"
-    }
+    "id": 1,
+    "nome": "Lucas Seixas",
+    "role": "ADMIN"
+}
 
 # CONSULTAR USUARIO (TODOS)
-@app.route('/usuarios', methods=['GET'])
-def obter_users():
-    return jsonify(usuarios)
+@usuario_bp.route('/usuarios', methods=['GET'])
+def consultar_usuario():
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    cursor.execute("SELECT * FROM usuarios")
+
+    usuarios = cursor.fetchall()
+
+    lista_usuarios = []
+
+    for usuario in usuarios:
+        dados = dict(usuario)
+        dados.pop("senha")
+        lista_usuarios.append(dados)
+    conexao.close()
+
+    return jsonify(lista_usuarios),200
 
 # CONSULTAR USUARIO POR (ID)
-@app.route('/usuarios/<int:id>', methods=['GET'])
-def obter_users_id(id):
-    for user in usuarios:
-        if user.get('id') == id:
-            return jsonify(user)
-    return jsonify({"erro": "Usuarios nao encontrado"})
+@usuario_bp.route('/usuarios/<int:id>', methods=['GET'])
+def consultar_usuario_id(id):
+
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    cursor.execute(""" SELECT * FROM usuarios WHERE id= ?""", (id,))
+
+    usuario = cursor.fetchone()    
+    conexao.close()
+
+    if usuario:
+        dados = dict(usuario)
+        dados.pop("senha")
+
+        return jsonify(dados), 200
+    
+    return jsonify({
+        "erro": "Usuário não encontrado"
+    }), 404
         
-# EDITAR USUARIO
-@app.route('/usuarios/<int:id>', methods=['PUT'])
+# EDITAR USUARIO TOTAL
+@usuario_bp.route('/usuarios/<int:id>', methods=['PUT'])
 def editar_usuarios(id):
     if usuario_logado.get("role") != "ADMIN":
         return jsonify({'erro': "Apenas ADMIN pode editar"}), 403
     
     usuario_editado = request.get_json()
 
-    for user in usuarios:
-        if user.get("id") == id:
-            user.update(usuario_editado)
-            return jsonify(user)
-    return jsonify({'erro': 'Usuario nao encontrado'}), 404
+    if not usuario_editado:
+        return jsonify({
+            "erro": "Dados não inseridos"
+        }), 400
+
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    try:
+        cursor.execute("""
+            SELECT id FROM usuarios
+            WHERE email =? AND id !=?
+        """,(
+            usuario_editado["email"],
+            id
+        ))
+
+        email_existente = cursor.fetchone()
+        if email_existente:
+            return jsonify({
+                "erro": "Email já utilizado por outro usuário"
+            }), 400
+
+        cursor.execute("""
+            UPDATE usuarios
+            SET nome=?, email=?, role=?, senha=?
+            WHERE id=?
+        """,( 
+            usuario_editado["nome"],
+            usuario_editado["email"],
+            usuario_editado["role"],
+            usuario_editado["senha"],
+            id
+        ))
+
+        conexao.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({
+                "erro": "Usuário não encontrado"
+            }), 404
+        return jsonify({ 
+            "mensagem": "Usuário atualizado com sucesso"
+        }), 200
+    except sqlite3.IntegrityError:
+        return jsonify({
+            "erro": "Email já cadastrado"
+        }), 400
+    
+    finally:
+        conexao.close()
+
+# EDITAR USUARIO PARCIAL (ID)
+@usuario_bp.route("/usuarios/<int:id>", methods=['PATCH'])
+def atualizar_usuario_parcial(id):
+    dados = request.get_json()
+
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    try:
+        campos = []
+        valores = []
+
+        for campo, valor in dados.items():
+            campos.append(f"{campo}=?")
+            valores.append(valor)
+
+        valores.append(id)
+
+        sql = f"""
+            UPDATE usuarios
+            SET {', '.join(campos)}
+            WHERE id=?
+        """
+        cursor.execute(sql, valores)
+
+        conexao.commit()
+
+        if cursor.rowcount == 0:
+            return jsonify({
+                "erro": "Usuário não encontrado"
+            }), 404
+
+        return jsonify({
+            "mensagem": "Usuário atualizado"
+        }), 200
+    finally:
+        conexao.close()
 
 # EXCLUIR USUARIO
-@app.route('/usuarios/<int:id>', methods=['DELETE'])
+@usuario_bp.route('/usuarios/<int:id>', methods=['DELETE'])
 def excluir_usuario(id):
-
     if usuario_logado.get("role") != "ADMIN":
-        return jsonify({'erro': "Apenas ADMIN pode excluir"}), 403
-    
-    for indice,user in enumerate(usuarios):
+            return jsonify({'erro': "Apenas ADMIN pode excluir"}), 403
 
-        if user['id'] == id:
-            del usuarios[indice]
-            
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    try:
+        cursor.execute("""
+            DELETE FROM usuarios
+            WHERE id=?
+        """,(id,))
+
+        conexao.commit()
+
+        if cursor.rowcount == 0:
             return jsonify({
-                "menssagem": "Usuario excluido com sucesso!"
-            }), 200
-    
-    return jsonify({
-        "erro": "Usuario nao encontrado"
-    }), 404
+                "erro": "Usuário não encontrado"
+            }), 404
+        return jsonify({ 
+            "mensagem": "Usuário excluído com sucesso."
+        }), 200
 
+    finally:
+        conexao.close()
+
+        
 # CRIAR USUARIO
-@app.route('/usuarios', methods=['POST'])
+@usuario_bp.route('/usuarios', methods=['POST'])
 def criar_usuario():
     if usuario_logado.get("role") != "ADMIN":
         return jsonify({
@@ -105,9 +187,36 @@ def criar_usuario():
         }), 403
     
     novo_usuario = request.get_json()
-    novo_usuario['id'] = len(usuarios) + 1
-    usuarios.append(novo_usuario)
 
-    return jsonify(novo_usuario), 201
+    if not novo_usuario:
+        return jsonify({
+            "erro": "Dados não enviados"
+        }), 400
 
-app.run(port=5000, host='localhost', debug=True)
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    try:
+        cursor.execute("""
+            INSERT INTO usuarios (nome, email, role, senha)
+            VALUES (?, ?, ?, ?)
+        """,(
+            novo_usuario["nome"],
+            novo_usuario["email"],
+            novo_usuario["role"],
+            novo_usuario["senha"]
+        ))
+        conexao.commit()
+
+        return jsonify({"mensagem": "Usuario inserido com sucesso"}), 201
+    
+    except sqlite3.IntegrityError:
+        return jsonify({"mensagem": "Erro: Email ja cadastrado"}), 400
+    
+    except Exception as e:
+        return jsonify({
+            "erro": str(e)
+        }), 500
+    
+    finally:
+        conexao.close()

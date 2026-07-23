@@ -1,6 +1,6 @@
 import sqlite3
 
-conexao = sqlite3.connect("homecare.db")
+conexao = sqlite3.connect("database/homecare.db")
 
 cursor = conexao.cursor()
 
