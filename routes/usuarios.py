@@ -1,17 +1,19 @@
 from flask import jsonify, request, Blueprint
 from database.connect import connect
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from utils.permissoes import verificar_admin
 import sqlite3
 
 usuario_bp = Blueprint("usuarios", __name__)
-usuario_logado = {
-    "id": 1,
-    "nome": "Lucas Seixas",
-    "role": "ADMIN"
-}
 
 # CONSULTAR USUARIO (TODOS)
 @usuario_bp.route('/usuarios', methods=['GET'])
+@jwt_required()
 def consultar_usuario():
+
+    if not verificar_admin():
+            return jsonify({'erro': "Apenas ADMIN pode consultar todos os usuários."}), 403
+
     conexao = connect()
     cursor = conexao.cursor()
 
@@ -31,6 +33,7 @@ def consultar_usuario():
 
 # CONSULTAR USUARIO POR (ID)
 @usuario_bp.route('/usuarios/<int:id>', methods=['GET'])
+@jwt_required()
 def consultar_usuario_id(id):
 
     conexao = connect()
@@ -53,8 +56,9 @@ def consultar_usuario_id(id):
         
 # EDITAR USUARIO TOTAL
 @usuario_bp.route('/usuarios/<int:id>', methods=['PUT'])
+@jwt_required()
 def editar_usuarios(id):
-    if usuario_logado.get("role") != "ADMIN":
+    if not verificar_admin():
         return jsonify({'erro': "Apenas ADMIN pode editar"}), 403
     
     usuario_editado = request.get_json()
@@ -113,7 +117,11 @@ def editar_usuarios(id):
 
 # EDITAR USUARIO PARCIAL (ID)
 @usuario_bp.route("/usuarios/<int:id>", methods=['PATCH'])
+@jwt_required()
 def atualizar_usuario_parcial(id):
+    if not verificar_admin():
+        return jsonify({'erro': "Apenas ADMIN pode editar"}), 403
+    
     dados = request.get_json()
 
     conexao = connect()
@@ -130,7 +138,7 @@ def atualizar_usuario_parcial(id):
         valores.append(id)
 
         sql = f"""
-            UPDATE usuarios
+            UPDATE usuarios 
             SET {', '.join(campos)}
             WHERE id=?
         """
@@ -151,9 +159,10 @@ def atualizar_usuario_parcial(id):
 
 # EXCLUIR USUARIO
 @usuario_bp.route('/usuarios/<int:id>', methods=['DELETE'])
+@jwt_required()
 def excluir_usuario(id):
-    if usuario_logado.get("role") != "ADMIN":
-            return jsonify({'erro': "Apenas ADMIN pode excluir"}), 403
+    if not verificar_admin():
+        return jsonify({'erro': "Apenas ADMIN pode excluir"}), 403
 
     conexao = connect()
     cursor = conexao.cursor()
@@ -180,11 +189,10 @@ def excluir_usuario(id):
         
 # CRIAR USUARIO
 @usuario_bp.route('/usuarios', methods=['POST'])
+@jwt_required()
 def criar_usuario():
-    if usuario_logado.get("role") != "ADMIN":
-        return jsonify({
-            'erro': 'Apenas ADMIN pode criar usuarios.'
-        }), 403
+    if not verificar_admin():
+            return jsonify({'erro': "Apenas ADMIN pode criar"}), 403
     
     novo_usuario = request.get_json()
 
