@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from database.connect import connect
 from flask_jwt_extended import create_access_token
+from werkzeug.security import check_password_hash
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -15,9 +16,9 @@ def login():
 
     if "email" not in dados or "senha" not in dados:
         return jsonify({
-            "erro": "Email e senha são obrigatorios"
-        }), 400
-    
+            "erro": "Email e senha estão vazios."
+        })
+
     conexao = connect()
     cursor = conexao.cursor()
 
@@ -29,11 +30,15 @@ def login():
 
         usuario = cursor.fetchone()
 
-        if not usuario or usuario["senha"] != dados["senha"]:
+        if not usuario:
             return jsonify({
                 "erro": "Usuário ou senha inválidos"
             }), 401
 
+        if not check_password_hash(usuario["senha"], dados["senha"]):
+            return jsonify({
+                "erro": "Usuáro ou senha inválidos"
+            })
 
         usuario_dict = dict(usuario)
         usuario_dict.pop("senha")
@@ -44,7 +49,7 @@ def login():
 
         return jsonify({
             "mensagem": "Login realizado com sucesso",
-            "toke": token,
+            "token": token,
             "usuario": usuario_dict
         }), 200
 

@@ -2,6 +2,8 @@ from flask import jsonify, request, Blueprint
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from utils.permissoes import verificar_admin
+from werkzeug.security import generate_password_hash
+
 import sqlite3
 
 usuario_bp = Blueprint("usuarios", __name__)
@@ -36,6 +38,9 @@ def consultar_usuario():
 @jwt_required()
 def consultar_usuario_id(id):
 
+    if not verificar_admin():
+        return jsonify({'erro': "Apenas ADMIN pode consultar os usuários por ID."}), 403 
+    
     conexao = connect()
     cursor = conexao.cursor()
 
@@ -59,7 +64,7 @@ def consultar_usuario_id(id):
 @jwt_required()
 def editar_usuarios(id):
     if not verificar_admin():
-        return jsonify({'erro': "Apenas ADMIN pode editar"}), 403
+        return jsonify({'erro': "Apenas ADMIN pode editar usuários"}), 403
     
     usuario_editado = request.get_json()
 
@@ -71,6 +76,7 @@ def editar_usuarios(id):
     conexao = connect()
     cursor = conexao.cursor()
 
+    senha_hash = generate_password_hash(usuario_editado["senha"])
     try:
         cursor.execute("""
             SELECT id FROM usuarios
@@ -94,7 +100,7 @@ def editar_usuarios(id):
             usuario_editado["nome"],
             usuario_editado["email"],
             usuario_editado["role"],
-            usuario_editado["senha"],
+            senha_hash,
             id
         ))
 
@@ -120,7 +126,7 @@ def editar_usuarios(id):
 @jwt_required()
 def atualizar_usuario_parcial(id):
     if not verificar_admin():
-        return jsonify({'erro': "Apenas ADMIN pode editar"}), 403
+        return jsonify({'erro': "Apenas ADMIN pode editar usuários"}), 403
     
     dados = request.get_json()
 
@@ -132,10 +138,11 @@ def atualizar_usuario_parcial(id):
         valores = []
 
         for campo, valor in dados.items():
-            campos.append(f"{campo}=?")
-            valores.append(valor)
+            if campo == "senha":
+                valor = generate_password_hash(valor)
 
-        valores.append(id)
+            campos.append(f"{campo}=?")
+            valores.append(id)
 
         sql = f"""
             UPDATE usuarios 
@@ -162,7 +169,7 @@ def atualizar_usuario_parcial(id):
 @jwt_required()
 def excluir_usuario(id):
     if not verificar_admin():
-        return jsonify({'erro': "Apenas ADMIN pode excluir"}), 403
+        return jsonify({'erro': "Apenas ADMIN pode excluir usuários."}), 403
 
     conexao = connect()
     cursor = conexao.cursor()
@@ -192,7 +199,7 @@ def excluir_usuario(id):
 @jwt_required()
 def criar_usuario():
     if not verificar_admin():
-            return jsonify({'erro': "Apenas ADMIN pode criar"}), 403
+           return jsonify({'erro': "Apenas ADMIN pode criar usuários"}), 403
     
     novo_usuario = request.get_json()
 
@@ -204,6 +211,8 @@ def criar_usuario():
     conexao = connect()
     cursor = conexao.cursor()
 
+    senha_hash = generate_password_hash(novo_usuario["senha"])
+
     try:
         cursor.execute("""
             INSERT INTO usuarios (nome, email, role, senha)
@@ -212,7 +221,7 @@ def criar_usuario():
             novo_usuario["nome"],
             novo_usuario["email"],
             novo_usuario["role"],
-            novo_usuario["senha"]
+            senha_hash
         ))
         conexao.commit()
 
