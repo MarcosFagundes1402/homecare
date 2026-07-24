@@ -8,14 +8,13 @@ def verificar_admin():
     cursor = conexao.cursor()
 
     cursor.execute("""
-        SELECT role FROM usuarios
+        SELECT role 
+        FROM usuarios
         WHERE id=?
-    """, (usuario_id),)
+    """, (usuario_id,))
 
     usuario = cursor.fetchone()
 
     conexao.close()
 
-    if usuario and usuario["role"] == "ADMIN":
-        return True
-    return False
+    return usuario and usuario["role"] == "ADMIN"
