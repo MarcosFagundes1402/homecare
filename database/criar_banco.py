@@ -9,7 +9,8 @@ CREATE TABLE IF NOT EXISTS usuarios (
     nome TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
     role TEXT NOT NULL,
-    senha TEXT NOT NULL
+    senha TEXT NOT NULL,
+    statis TEXT NOT NULL DEFAULT 'PENDENTE'
 )
 """
 
