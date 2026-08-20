@@ -57,9 +57,8 @@ def criar_pacientes():
             "erro": "CPF já cadastrado."
         }), 400
 
-    finally: 
-        if conexao:
-            conexao.close()
+    finally:
+        conexao.close()
 
 # CONSULTADO TODOS PACIENTES
 @pacientes_bp.route("/pacientes", methods=['GET'])
@@ -110,7 +109,7 @@ def consultar_paciente_id(id):
         return jsonify(dados),200
 
     return jsonify({
-        "erro": "Paciente o encontrado"
+        "erro": "Paciente não encontrado"
     }), 404
 
 #EDITAR PACIENTE TOTAL
@@ -144,8 +143,12 @@ def editar_paciente(id):
 
         #atualiza somente o paciente informado
         cursor.execute("""
-        UPDATE pacientes SET cpf=?,data_nascimento =?,
-        tel=?, endereco=?,obs=?
+        UPDATE pacientes 
+        SET 
+        cpf=?,
+        data_nascimento =?,
+        tel=?, endereco=?,
+        obs=?
         WHERE id=?
         """, (
             paciente_editado["cpf"],
