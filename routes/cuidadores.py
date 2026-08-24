@@ -8,8 +8,7 @@ cuidadores_bp = Blueprint("cuidadores", __name__)
 
 # CRIANDO CUIDADO
 @cuidadores_bp.route("/cuidadores/criar", methods=['POST'])
-@jwt_required()
-@admin_required()
+
 def criar_cuidador():
 
     conexao = None
@@ -28,7 +27,7 @@ def criar_cuidador():
         cursor.execute("""
             INSERT INTO cuidadores
             (
-                usuario_id,
+                cuidador_id,
                 cpf,
                 data_nascimento,
                 tel,
@@ -38,7 +37,7 @@ def criar_cuidador():
             )
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """,(
-            dados["usuario_id"],
+            dados["cuidador_id"],
             dados["cpf"],
             dados["data_nascimento"],
             dados["tel"],

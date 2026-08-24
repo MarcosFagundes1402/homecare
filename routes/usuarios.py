@@ -9,9 +9,9 @@ import sqlite3
 usuario_bp = Blueprint("usuarios", __name__)
 
 # CONSULTAR USUARIO (TODOS)
+
+
 @usuario_bp.route('/usuarios', methods=['GET'])
-@jwt_required()
-@admin_required()
 def consultar_usuario():
 
     conexao = connect()
@@ -29,20 +29,22 @@ def consultar_usuario():
         lista_usuarios.append(dados)
     conexao.close()
 
-    return jsonify(lista_usuarios),200
+    return jsonify(lista_usuarios), 200
 
 # CONSULTAR USUARIO POR (ID)
+
+
 @usuario_bp.route('/usuarios/<int:id>', methods=['GET'])
 @jwt_required()
 @admin_required()
 def consultar_usuario_id(id):
-    
+
     conexao = connect()
     cursor = conexao.cursor()
 
     cursor.execute(""" SELECT * FROM usuarios WHERE id= ?""", (id,))
 
-    usuario = cursor.fetchone()    
+    usuario = cursor.fetchone()
     conexao.close()
 
     if usuario:
@@ -50,17 +52,19 @@ def consultar_usuario_id(id):
         dados.pop("senha")
 
         return jsonify(dados), 200
-    
+
     return jsonify({
         "erro": "Usuário não encontrado"
     }), 404
-        
+
 # EDITAR USUARIO TOTAL
+
+
 @usuario_bp.route('/usuarios/<int:id>', methods=['PUT'])
 @jwt_required()
 @admin_required()
 def editar_usuarios(id):
-    
+
     usuario_editado = request.get_json()
 
     if not usuario_editado:
@@ -76,7 +80,7 @@ def editar_usuarios(id):
         cursor.execute("""
             SELECT id FROM usuarios
             WHERE email =? AND id !=?
-        """,(
+        """, (
             usuario_editado["email"],
             id
         ))
@@ -91,7 +95,7 @@ def editar_usuarios(id):
             UPDATE usuarios
             SET nome=?, email=?, role=?, senha=?
             WHERE id=?
-        """,( 
+        """, (
             usuario_editado["nome"],
             usuario_editado["email"],
             usuario_editado["role"],
@@ -105,23 +109,25 @@ def editar_usuarios(id):
             return jsonify({
                 "erro": "Usuário não encontrado"
             }), 404
-        return jsonify({ 
+        return jsonify({
             "mensagem": "Usuário atualizado com sucesso"
         }), 200
     except sqlite3.IntegrityError:
         return jsonify({
             "erro": "Email já cadastrado"
         }), 400
-    
+
     finally:
         conexao.close()
 
 # EDITAR USUARIO PARCIAL (ID)
+
+
 @usuario_bp.route("/usuarios/<int:id>", methods=['PATCH'])
 @jwt_required()
 @admin_required()
 def atualizar_usuario_parcial(id):
-    
+
     dados = request.get_json()
 
     conexao = connect()
@@ -161,6 +167,8 @@ def atualizar_usuario_parcial(id):
         conexao.close()
 
 # EXCLUIR USUARIO
+
+
 @usuario_bp.route('/usuarios/<int:id>', methods=['DELETE'])
 @jwt_required()
 @admin_required()
@@ -173,7 +181,7 @@ def excluir_usuario(id):
         cursor.execute("""
             DELETE FROM usuarios
             WHERE id=?
-        """,(id,))
+        """, (id,))
 
         conexao.commit()
 
@@ -181,26 +189,27 @@ def excluir_usuario(id):
             return jsonify({
                 "erro": "Usuário não encontrado"
             }), 404
-        return jsonify({ 
+        return jsonify({
             "mensagem": "Usuário excluído com sucesso."
         }), 200
 
     finally:
         conexao.close()
 
-        
+
 # CRIAR USUARIO
-@usuario_bp.route('/usuarios', methods=['POST'])
-@jwt_required()
-@admin_required()
+@usuario_bp.route('/usuarios/criar', methods=['POST'])
 def criar_usuario():
-    
+
     novo_usuario = request.get_json()
+
 
     if not novo_usuario:
         return jsonify({
             "erro": "Dados não enviados"
         }), 400
+
+    role = novo_usuario['role'].lower()
 
     conexao = connect()
     cursor = conexao.cursor()
@@ -208,26 +217,100 @@ def criar_usuario():
     senha_hash = generate_password_hash(novo_usuario["senha"])
 
     try:
+        #CRIA USUARIO PRINCIPAL
         cursor.execute("""
             INSERT INTO usuarios (nome, email, role, senha)
             VALUES (?, ?, ?, ?)
-        """,(
+        """, (
             novo_usuario["nome"],
             novo_usuario["email"],
-            novo_usuario["role"],
+            role,
             senha_hash
         ))
+
+        usuario_id = cursor.lastrowid
+
+        #SE FOR PACIENTEM CRIA O PERFIL DE PACIENTE
+        if role == "paciente":
+            cursor.execute("""
+                INSERT INTO pacientes (
+                    id,
+                    nome,
+                    cpf,
+                    data_nascimento,
+                    tel,
+                    endereco,
+                    obs
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                usuario_id,
+                novo_usuario['nome'],
+                novo_usuario['cpf'],
+                novo_usuario['data_nascimento'],
+                novo_usuario['tel'],
+                novo_usuario['endereco'],
+                novo_usuario['obs']
+            ))
+
+            conexao.commit()
+
+            return jsonify({
+                'msg': 'Paciente inserido com sucesso',
+                'id': usuario_id
+            }), 201
+
+        elif role == 'cuidador':
+            cursor.execute("""
+                INSERT INTO cuidadores (
+                        id,
+                        nome,
+                        cpf,
+                        data_nascimento,
+                        tel,
+                        endereco,
+                        obs,
+                        status
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                usuario_id,
+                novo_usuario['nome'],
+                novo_usuario['cpf'],
+                novo_usuario['data_nascimento'],
+                novo_usuario['tel'],
+                novo_usuario['endereco'],
+                novo_usuario['obs'],
+                novo_usuario['status']
+            ))
+
+            conexao.commit()
+
+            return jsonify({
+                'msg': 'Cuidador inserido com sucesso.',
+                'id': usuario_id
+            }), 201
+        
         conexao.commit()
 
-        return jsonify({"mensagem": "Usuario inserido com sucesso"}), 201
-    
-    except sqlite3.IntegrityError:
-        return jsonify({"mensagem": "Erro: Email ja cadastrado"}), 400
-    
+        return jsonify({
+            'msg': f'{role.capitalize()} inserido com sucesso.',
+            'id': usuario_id
+        }), 201
+
+    except sqlite3.IntegrityError as e:
+        conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 400
+
     except Exception as e:
+        conexao.rollback()
+
         return jsonify({
             "erro": str(e)
         }), 500
-    
+
     finally:
         conexao.close()

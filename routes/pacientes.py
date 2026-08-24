@@ -28,7 +28,7 @@ def criar_pacientes():
         cursor.execute("""
         INSERT INTO pacientes
         (
-            usuario_id,
+            paciente_id,
             cpf,
             data_nascimento,
             tel,
@@ -38,7 +38,7 @@ def criar_pacientes():
 
         VALUES (?, ?, ?, ?, ?, ?)
         """,(
-            dados["usuario_id"],
+            dados["paciente_id"],
             dados["cpf"],
             dados["data_nascimento"],
             dados["tel"],
