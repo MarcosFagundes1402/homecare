@@ -75,7 +75,7 @@ def tabela_cuidadores():
     cursor.close()
     conexao.close()
 
-def cuidadores_pacientes():
+def tabela_cuidadores_pacientes():
 
     conexao = connect()
     cursor = conexao.cursor()
@@ -102,7 +102,30 @@ def cuidadores_pacientes():
     cursor.close()
     conexao.close()
 
+def tabela_medicamentos():
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS medicamentos(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            paciente_id INTERGER NOT NULL,
+            nome TEXT NOT NULL,
+            dosagem TEXT,
+            horario TEXT,
+            obs TEXT,
+            status TEXT DEFAULT 'ativo',
+            FOREIGN KEY (paciente_id) REFERENCES pacientes(id))
+    """)
+
+    print("Tabela de medicamentos criado com sucesso.")
+    
+    conexao.commit()
+    conexao.close()
+
+
 tabela_usuarios()
 tabela_paciente()
 tabela_cuidadores()
-cuidadores_pacientes()
+tabela_cuidadores_pacientes()
+tabela_medicamentos()
