@@ -22,7 +22,7 @@ def admin_required():
 
             conexao.close()
 
-            if not usuario or usuario["role"] != "ADMIN":
+            if not usuario or usuario["role"].lower() != "admin":
                 return jsonify({
                     "erro": "Apenas ADMIN pode acessar"
                 }), 403

@@ -177,7 +177,8 @@ def listar_pacientes_cuidador(id):
             conexao.close()
 
             return jsonify({
-                "erro": f'O usuário {usuario["nome"]} não é cuidador.',
+                "erro": "O usuário não é cuidador.",
+                "usuario": usuario["nome"],
                 "role": usuario["role"]
             }), 400
 
@@ -257,7 +258,8 @@ def listar_cuidadores_paciente(id):
             conexao.close()
 
             return jsonify({
-                "erro": f'O usuário {usuario["nome"]} não é paciente.',
+                "erro": "O usuário não é paciente.",
+                "usuario": usuario["nome"],
                 "role": usuario["role"]
             }), 400
 
