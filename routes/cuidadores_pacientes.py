@@ -14,7 +14,7 @@ cuidadores_pacientes_bp = Blueprint(
 
 
 # CRIA O VINCULO ENTRE CUIDADOR E PACIENTE
-@cuidadores_pacientes_bp.route("/cuidadores_pacientes/vinculo", methods=["POST"])
+@cuidadores_pacientes_bp.route("/cuidadores_pacientes/criar-vinculo", methods=["POST"])
 @jwt_required()
 @admin_required()
 def criar_vinculo():
@@ -62,6 +62,22 @@ def criar_vinculo():
                 "role": cuidador["role"]
             }), 400
 
+        #VERIFICA SE EXISTE NA TABELA CUIDADORES
+        cursor.execute("""
+            SELECT id
+            FROM cuidadores
+            WHERE id = ?
+        """,(
+            dados["cuidador_id"],
+        ))
+
+        cuidador_cadastrado = cursor.fetchone()
+
+        if not cuidador_cadastrado:
+            return jsonify({
+                "erro": "Cadastro de cuidador não encontrado."
+            }), 404
+        
         # VERIFICA SE O ID INFORMADO COMO PACIENTE EXISTE
         cursor.execute("""
             SELECT id, nome, role
@@ -86,6 +102,22 @@ def criar_vinculo():
                 "nome": paciente["nome"],
                 "role": paciente["role"]
             }), 400
+
+        #VERIFICA SE EXISTE NA TABELA PACIENTES
+        cursor.execute("""
+            SELECT id
+            FROM pacientes
+            WHERE id =?
+        """,(
+            dados["paciente_id"],
+        ))
+
+        paciente_cadastrado = cursor.fetchone()
+
+        if not paciente_cadastrado:
+            return jsonify({
+                "erro": "Cadastro de paciente não encontrado."
+            }), 404
 
         # VERIFICA SE O VINCULO JÁ EXISTE
         cursor.execute("""
@@ -166,16 +198,12 @@ def listar_pacientes_cuidador(id):
         usuario = cursor.fetchone()
 
         if not usuario:
-            conexao.close()
-
             return jsonify({
                 "erro": "Usuário não encontrado."
             }), 404
 
         # VERIFICA SE REALMENTE É CUIDADOR
         if usuario["role"].lower() != "cuidador":
-            conexao.close()
-
             return jsonify({
                 "erro": "O usuário não é cuidador.",
                 "usuario": usuario["nome"],
@@ -192,27 +220,20 @@ def listar_pacientes_cuidador(id):
                     pacientes.tel,
                     pacientes.endereco,
                     pacientes.obs
-
                 FROM cuidadores_pacientes
-
                 JOIN pacientes
                     ON cuidadores_pacientes.paciente_id = pacientes.id
-
                 WHERE cuidadores_pacientes.cuidador_id = ?
             """, (id,))
 
         pacientes = cursor.fetchall()
 
         if not pacientes:
-            conexao.close()
-
             return jsonify({
                 "msg": "Este cuidador não possui pacientes vinculados."
             }), 200
 
         lista = [dict(paciente) for paciente in pacientes]
-
-        conexao.close()
 
         return jsonify(lista), 200
 
@@ -230,7 +251,6 @@ def listar_pacientes_cuidador(id):
 @jwt_required()
 @admin_required()
 def listar_cuidadores_paciente(id):
-
     conexao = None
 
     try:
@@ -247,16 +267,12 @@ def listar_cuidadores_paciente(id):
         usuario = cursor.fetchone()
 
         if not usuario:
-            conexao.close()
-
             return jsonify({
                 "erro": "Usuário não encontrado."
             }), 404
 
         # VERIFICA SE REALMENTE É PACIENTE
         if usuario["role"].lower() != "paciente":
-            conexao.close()
-
             return jsonify({
                 "erro": "O usuário não é paciente.",
                 "usuario": usuario["nome"],
@@ -274,27 +290,20 @@ def listar_cuidadores_paciente(id):
                 c.endereco,
                 c.obs,
                 c.status
-
             FROM cuidadores_pacientes cp
-
             JOIN cuidadores c
                 ON cp.cuidador_id = c.id
-
             WHERE cp.paciente_id = ?
         """, (id,))
 
         cuidadores = cursor.fetchall()
 
         if not cuidadores:
-            conexao.close()
-
             return jsonify({
                 "msg": "Este paciente não possui cuidadores vinculados."
             }), 200
 
         lista = [dict(cuidador) for cuidador in cuidadores]
-
-        conexao.close()
 
         return jsonify(lista), 200
 
@@ -308,9 +317,7 @@ def listar_cuidadores_paciente(id):
             conexao.close()
 
 # REMOVE O VINCULO ENTRE CUIDADOR E PACIENTE
-
-
-@cuidadores_pacientes_bp.route("/cuidadores_pacientes/vinculo", methods=["DELETE"])
+@cuidadores_pacientes_bp.route("/cuidadores_pacientes/deletar-vinculo", methods=["DELETE"])
 @jwt_required()
 @admin_required()
 def remover_vinculo():
