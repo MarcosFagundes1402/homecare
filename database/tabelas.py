@@ -123,9 +123,37 @@ def tabela_medicamentos():
     conexao.commit()
     conexao.close()
 
+def tabela_administracao_medicamentos():
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS administracao_medicamentos(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            medicamento_id INTEGER NOT NULL,
+            paciente_id INTEGER NOT NULL,
+            responsavel_id INTEGER NOT NULL,
+            horario_previsto TEXT,
+            horario_administrado TEXT,
+            dosagem_administrada TEXT NOT NULL,
+            status TEXT NOT NULL,
+            obs TEXT,
+
+            FOREIGN KEY (medicamento_id) REFERENCES medicamentos(id),
+            FOREIGN KEY (paciente_id) REFERENCES pacientes(id),
+            FOREIGN KEY (responsavel_id) REFERENCES usuarios(id)
+        )
+    """)
+
+    print("Tabela administração e medicamentos criado com sucesso.")
+
+    conexao.commit()
+    conexao.close()
+
 
 tabela_usuarios()
 tabela_paciente()
 tabela_cuidadores()
 tabela_cuidadores_pacientes()
 tabela_medicamentos()
+tabela_administracao_medicamentos()

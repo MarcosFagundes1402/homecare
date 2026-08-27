@@ -17,7 +17,7 @@ def login():
     if "email" not in dados or "senha" not in dados:
         return jsonify({
             "erro": "Email e senha são obrigatórios."
-        }), 403
+        }), 400
 
     conexao = connect()
     cursor = conexao.cursor()
@@ -39,7 +39,7 @@ def login():
         if not check_password_hash(usuario["senha"], dados["senha"]):
             return jsonify({
                 "erro": "Usuáro ou senha inválidos"
-            })
+            }), 403
 
         usuario_dict = dict(usuario)
         usuario_dict.pop("senha")
