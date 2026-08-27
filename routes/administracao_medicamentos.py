@@ -394,3 +394,182 @@ def listar_administracoes_paciente(paciente_id):
     finally:
         if conexao:
             conexao.close()
+
+#EDITAR ADMINISTRACAO DE MEDICAMENTOS
+@administracao_medicamentos_bp.route("/administracao_medicamentos/<int:id>", methods=['PATCH'])
+@jwt_required()
+@roles_required("admin", "cuidador")
+def editar_administracoes(id):
+    conexao = None
+
+    try:
+        dados = request.get_json()
+
+        if not dados:
+            return jsonify({
+                "erro": "Dados não encontrado."
+            }), 400
+
+        usuario_id = get_jwt_identity()
+
+        conexao = connect()
+        cursor = conexao.cursor()
+
+        #BUSCA O USUARIO LOGADO
+        cursor.execute("""
+            SELECT id, nome, role
+            FROM usuarios
+            WHERE id = ?
+        """, (usuario_id,))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+            return jsonify({
+                "erro": "Usuário não encontrado."
+            }), 404
+
+        #BUSCA A ADMINISTRACAO
+        cursor.execute("""
+            SELECT
+                id,
+                paciente_id,
+                medicamento_id,
+                responsavel_id,
+                horario_administrado,
+                dosagem_administrada,
+                status,
+                obs
+            FROM administracao_medicamentos
+            WHERE id = ?
+        """, (id,))
+
+        administracao = cursor.fetchone()
+
+        if not administracao:
+            return jsonify ({
+                "erro": "Administração não encontrado."
+            }), 404
+
+        #SE FOR CUIDADOR, SÓ PODE EDITAR O QUE ELE MESMO REGISTROU
+        if usuario["role"].lower() == "cuidador":
+            if administracao["responsavel_id"] != usuario_id:
+                return jsonify({
+                    "erro": "Cuidador não pode editar administração registrada por outro cuidador."
+                }), 403
+
+        #CAMPOS QUE PODEM SER EDITADOS
+        campos_permitidos = [
+            "horario_administrado",
+            "dosagem_administrada",
+            "status",
+            "obs"
+        ]
+
+        campos = []
+        valores= []
+
+        for campo in campos_permitidos:
+            if campo in dados:
+                campos.append(f"{campo} =?")
+                valores.append(dados[campo])
+
+        if not campos:
+             return jsonify({
+                 "erro": "Nenhum campo válido foi enviado para edição."
+             }), 400
+
+        valores.append(id)
+
+        #ATUALIZA A ADMINISTRACAO
+        cursor.execute(f"""  
+            UPDATE administracao_medicamentos
+            SET {", ".join(campos)}
+            WHERE id = ?
+        """, valores)
+
+        conexao.commit()
+
+        return jsonify({
+            "msg": "Administração atualizada com sucesso."
+        }), 200
+
+    except Exception as e:
+        if conexao:
+            conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+    finally:
+        if conexao:
+            conexao.close()
+
+#EXCLUIR REGISTRO DE ADMINISTRACAO
+@administracao_medicamentos_bp.route("/administracao_medicamentos/deletar/<int:id>", methods=['DELETE'])
+@jwt_required()
+@admin_required()
+def excluir_administracao(id):
+    conexao = None
+
+    try:
+        conexao = connect()
+        cursor = conexao.cursor()
+
+        #VERIFICA SE A ADMINISTRACAO EXISTE
+        cursor.execute("""
+            SELECT
+                id,
+                medicamento_id,
+                paciente_id,
+                responsavel_id,
+                horario_administrado,
+                dosagem_administrada,
+                status,
+                obs
+            FROM administracao_medicamentos
+            WHERE id = ?
+        """, (id,))
+
+        administracao = cursor.fetchone()
+
+        if not administracao:
+             return jsonify({
+                 "erro": "Administração não encontrada."
+             }), 404
+
+        #EXCLUI A ADMINISTRACAO
+        cursor.execute("""
+            DELETE FROM administracao_medicamentos
+            WHERE id = ?
+        """, (id,))
+
+        conexao.commit()
+
+        return jsonify({
+            "msg": "Administração excluída com sucesso.",
+
+            "administracao_excluida": {
+                "id": administracao["id"],
+                "medicamento_id": administracao["medicamento_id"],
+                "paciente_id": administracao["paciente_id"],
+                "responsavel_id": administracao["responsavel_id"],
+                "horario_administrado": administracao["horario_administrado"],
+                "dosagem_administrada": administracao["dosagem_administrada"],
+                "status": administracao["status"],
+                "obs": administracao["obs"]
+            }
+        }), 200
+
+    except Exception as e:
+        if conexao:
+            conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+    finally:
+        if conexao:
+            conexao.close()
