@@ -8,7 +8,8 @@ cursor.execute("DROP TABLE IF EXISTS cuidadores")
 cursor.execute("DROP TABLE IF EXISTS pacientes")
 cursor.execute("DROP TABLE IF EXISTS usuarios")
 cursor.execute("DROP TABLE IF EXISTS usuarios")
-cursor.execute("DROP TABLE IF EXISTS administracao_medicamentos;")
+cursor.execute("DROP TABLE IF EXISTS administracao_medicamentos")
+cursor.execute("DROP TABLE IF EXISTS relatorios_diarios")
 
 conexao.commit()
 

@@ -5,6 +5,7 @@ from routes.cuidadores import cuidadores_bp
 from routes.cuidadores_pacientes import cuidadores_pacientes_bp
 from routes.medicamentos import medicamentos_bp
 from routes.administracao_medicamentos import administracao_medicamentos_bp
+from routes.relatorios_diarios import relatorios_diarios_bp
 
 
 def registrar_rotas(app):
@@ -15,3 +16,4 @@ def registrar_rotas(app):
     app.register_blueprint(cuidadores_pacientes_bp)
     app.register_blueprint(medicamentos_bp)
     app.register_blueprint(administracao_medicamentos_bp)
+    app.register_blueprint(relatorios_diarios_bp)

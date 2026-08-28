@@ -150,6 +150,39 @@ def tabela_administracao_medicamentos():
     conexao.commit()
     conexao.close()
 
+def tabela_relatorios_diarios():
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS relatorios_diarios(
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+            paciente_id INTEGER NOT NULL,
+            responsavel_id INTEGER NOT NULL,
+
+            alimentacao TEXT,
+            higiene TEXT,
+
+            pressao_arterial TEXT,
+            glicemia TEXT,
+            temperatura TEXT,
+
+            observacoes TEXT,
+
+            data_horario TEXT NOT NULL,
+
+            FOREIGN KEY (paciente_id) REFERENCES pacientes(id),
+            FOREIGN KEY (responsavel_id) REFERENCES usuarios(id)
+        )
+    """)
+
+    print("Tabela de relatorio criada com sucesso!")
+
+    conexao.commit()
+    conexao.close()
+
+
 
 tabela_usuarios()
 tabela_paciente()
@@ -157,3 +190,4 @@ tabela_cuidadores()
 tabela_cuidadores_pacientes()
 tabela_medicamentos()
 tabela_administracao_medicamentos()
+tabela_relatorios_diarios()
