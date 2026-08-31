@@ -375,7 +375,7 @@ def editar_relatorios(id):
             }), 400
 
         #usuario_id = get_jwt_identity()
-        usuario_id = 5
+        usuario_id = 7
 
         conexao = connect()
         cursor = conexao.cursor()
@@ -425,6 +425,25 @@ def editar_relatorios(id):
                 return jsonify({
                     "erro": "Cuidador não pode editar relatório criado por outro usuário."
                 }), 403
+            
+        #VERIFICAR SE O CUIDADOR TEM VINCULO COM O PACIENTE
+        cursor.execute("""
+            SELECT id
+            FROM cuidadores_pacientes
+            WHERE cuidador_id = ?
+            AND paciente_id = ?
+        """,(
+            usuario_id,
+            relatorio["paciente_id"]
+        ))
+
+        vinculo = cursor.fetchone()
+
+        if not vinculo:
+            return jsonify({
+                "erro": "Cuidador não está vinculado a este paciente."
+            }), 403
+
 
         #CAMPOS QUE PODER SER EDITADOS
         campos_permitidos = [
@@ -475,3 +494,76 @@ def editar_relatorios(id):
     finally:
         if conexao:
             conexao.close()
+
+#EXCLUIR RELATORIOS DIARIO
+@relatorios_diarios_bp.route("/relatorios_diarios/deletar/<int:id>", methods=['DELETE'])
+@jwt_required()
+@admin_required()
+def excluir_relatorios(id):
+    conexao = None
+
+    try:
+        conexao = connect()
+        cursor = conexao.cursor()
+
+        #VERIFICAR SE O RELATORIO EXISTE
+        cursor.execute("""
+            SELECT 
+                id,
+                paciente_id,
+                responsavel_id,
+                alimentacao,
+                higiene,
+                pressao_arterial,
+                glicemia,
+                temperatura,
+                observacoes,
+                data_horario
+            FROM relatorios_diarios
+            WHERE id = ?
+        """,(id,))
+
+        relatorio = cursor.fetchone()
+
+        if not relatorio:
+            return jsonify({
+                "erro": "Relatório não encontrado."
+            }), 404
+
+        #EXCLUI O RELATORIO
+        cursor.execute("""
+            DELETE FROM relatorios_diarios
+            WHERE id = ?
+        """, (id,))
+
+        conexao.commit()
+
+        return jsonify({
+            "msg": "Relatório excluído com sucesso.",
+
+            "relatorio_excluido": {
+                "id": relatorio["id"],
+                "paciente_id": relatorio["paciente_id"],
+                "responsavel_id": relatorio["responsavel_id"],
+                "alimentacao": relatorio["alimentacao"],
+                "higiene": relatorio["higiene"],
+                "pressao_arterial": relatorio["pressao_arterial"],
+                "glicemia": relatorio["glicemia"],
+                "temperatura": relatorio["temperatura"],
+                "observacoes": relatorio["observacoes"],
+                "data_horario": relatorio["data_horario"]
+            }
+        }), 200
+
+    except Exception as e:
+        if conexao:
+            conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+    finally:
+        if conexao:
+            conexao.close()
+
