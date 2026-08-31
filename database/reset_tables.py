@@ -10,6 +10,8 @@ cursor.execute("DROP TABLE IF EXISTS usuarios")
 cursor.execute("DROP TABLE IF EXISTS usuarios")
 cursor.execute("DROP TABLE IF EXISTS administracao_medicamentos")
 cursor.execute("DROP TABLE IF EXISTS relatorios_diarios")
+cursor.execute("ALTER TABLE pacientes")
+cursor.execute("ADD COLUMN status TEXT DEFAULT 'ativo'")
 
 conexao.commit()
 

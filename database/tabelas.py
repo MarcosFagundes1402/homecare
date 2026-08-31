@@ -35,6 +35,7 @@ def tabela_paciente():
             tel  TEXT,
             endereco TEXT,
             obs TEXT,
+            status TEXT DEFAULT 'ativo',
 
             FOREIGN KEY(id)
                 REFERENCES usuarios(id)
