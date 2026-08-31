@@ -141,14 +141,13 @@ def criar_relatorio():
 
 #LISTAR RELATÓRIOS DIÁRIOS POR PACIENTE
 @relatorios_diarios_bp.route("/relatorios_diarios/paciente/<int:paciente_id>", methods=['GET'])
-#@jwt_required()
-#@roles_required("admin", "cuidador")
+@jwt_required()
+@roles_required("admin", "cuidador")
 def listar_relatorios_paciente(paciente_id):
-    conexao= None
+    conexao = None
 
     try:
-        #usuario = get_jwt_identity()
-        usuario_id = 5
+        usuario_id = get_jwt_identity()
 
         conexao = connect()
         cursor = conexao.cursor()
@@ -230,6 +229,11 @@ def listar_relatorios_paciente(paciente_id):
 
         relatorios = cursor.fetchall()
 
+        if not relatorios:
+            return jsonify({
+                "msg": "Este paciente não possui relatório cadastrados."
+            }), 200
+
         lista = []
 
         for relatorio in relatorios:
@@ -267,3 +271,207 @@ def listar_relatorios_paciente(paciente_id):
     finally:
         if conexao:
              conexao.close()
+
+# LISTAR TODOS OS RELATORIOS DIARIOS
+@relatorios_diarios_bp.route("/relatorios_diarios", methods=['GET'])
+#@jwt_required()
+#@admin_required()
+def listar_relatorios():
+    conexao = None
+
+    try:
+        conexao = connect()
+        cursor = conexao.cursor()
+
+        #BUSCA TODOS OS RELATORIOS
+        cursor.execute("""
+            SELECT 
+                rd.id,
+                rd.paciente_id,
+                rd.responsavel_id,
+                rd.alimentacao,
+                rd.higiene,
+                rd.pressao_arterial,
+                rd.glicemia,
+                rd.temperatura,
+                rd.observacoes,
+                rd.data_horario,
+
+                p.nome AS paciente_nome,
+
+                r.nome AS responsavel_nome,
+                r.role AS responsavel_role
+
+            FROM relatorios_diarios rd
+
+            JOIN usuarios p
+                ON p.id = rd.paciente_id
+            
+            JOIN usuarios r
+                ON r.id = rd.responsavel_id
+
+            ORDER BY rd.id DESC
+        """)
+
+        relatorios = cursor.fetchall()
+
+        if not relatorios:
+            return jsonify({
+                "msg": "Nenhum relatório cadastrado."
+            }), 200
+
+        lista = []
+
+        for relatorio in relatorios:
+            lista.append({
+                "id": relatorio["id"],
+
+                "paciente": {
+                    "id": relatorio["paciente_id"],
+                    "nome": relatorio["paciente_nome"]
+                },
+
+                "alimentacao": relatorio["alimentacao"],
+                "higiene": relatorio["higiene"],
+                "pressao_arterial": relatorio["pressao_arterial"],
+                "glicemia": relatorio["glicemia"],
+                "temperatura": relatorio["temperatura"],
+                "observacoes": relatorio["observacoes"],
+                "data_horario": relatorio["data_horario"],
+
+                "responsavel": {
+                    "id": relatorio["responsavel_id"],
+                    "nome": relatorio["responsavel_nome"],
+                    "role": relatorio["responsavel_role"]
+                }
+            })
+
+        return jsonify({
+            "relatorios": lista
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+    finally:
+        if conexao:
+            conexao.close()
+
+#EDITAR RELATORIO DIARIO
+@relatorios_diarios_bp.route("/relatorios_diarios/editar/<int:id>", methods=['PATCH'])
+#@jwt_required()
+#@roles_required("admin", "cuidador")
+def editar_relatorios(id):
+    conexao = None
+
+    try:
+        dados = request.get_json()
+
+        if not dados:
+            return jsonify({
+                "erro": "Relatório não econtrados."
+            }), 400
+
+        #usuario_id = get_jwt_identity()
+        usuario_id = 5
+
+        conexao = connect()
+        cursor = conexao.cursor()
+
+        #BUSCA USUARIO LOGADO
+        cursor.execute("""
+            SELECT id, nome, role
+            FROM usuarios
+            WHERE id = ?
+        """, (usuario_id,))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+            return jsonify({
+                "erro": "Usuáro não encontrado."
+            }), 404
+
+        #BUSCAR O RELATORIO
+        cursor.execute("""
+            SELECT
+                id,
+                paciente_id,
+                responsavel_id,
+                alimentacao,
+                higiene,
+                pressao_arterial,
+                glicemia,
+                temperatura,
+                observacoes,
+                data_horario
+            FROM relatorios_diarios
+            WHERE id = ?
+        """, (id,))
+
+        relatorio = cursor.fetchone()
+
+        if not relatorio:
+            return jsonify({
+                "erro": "Relatórios não encontrado."
+            }), 404
+
+        #CUIDADOR SO PODE EDITAR RELATORIO QUE ELE MESMO CRIOU
+        if usuario["role"].lower() == "cuidador":
+
+            if relatorio["responsavel_id"] != usuario_id:
+                return jsonify({
+                    "erro": "Cuidador não pode editar relatório criado por outro usuário."
+                }), 403
+
+        #CAMPOS QUE PODER SER EDITADOS
+        campos_permitidos = [
+            "alimentacao",
+            "higiene",
+            "pressao_arterial",
+            "glicemia",
+            "temperatura",
+            "observacoes"
+        ]
+
+        campos = []
+        valores = []
+
+        for campo in campos_permitidos:
+            if campo in dados:
+                campos.append(f"{campo} = ?")
+                valores.append(dados[campo])
+
+        if not campos:
+            return jsonify({
+                "erro": "Nenhum campo válido foi enviado para edição."
+            }), 400
+
+        valores.append(id)
+
+        #ATUALIZA O RELATORIO
+        cursor.execute(f"""
+            UPDATE relatorios_diarios
+            SET {", ".join(campos)}
+            WHERE id = ?
+        """, valores)
+
+        conexao.commit()
+
+        return jsonify({
+            "msg": "Relatório atualizado com sucesso."
+        }), 200
+
+    except Exception as e:
+        if conexao:
+            conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+    finally:
+        if conexao:
+            conexao.close()
