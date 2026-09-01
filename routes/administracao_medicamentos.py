@@ -28,12 +28,11 @@ def registrar_administracao():
             or "status" not in dados
             or "horario_administrado" not in dados
             or "dosagem_administrada" not in dados
-            or "obs" not in dados
         ):
             return jsonify({
                 "erro": (
-                    "medicamento_id, paciente_id, status, horario_administrado, "
-                    "dosagem_administrada e obs são obrigatórios."
+                    "medicamento_id, paciente_id, status, horario_administrado "
+                    "e dosagem_administrada são obrigatórios."
                     )
             }), 400
 
@@ -56,12 +55,6 @@ def registrar_administracao():
             return jsonify({
                 "erro": "Usuário não encontrado."
             }), 404
-
-        #VERIFICA SE QUEM ESTÁ LOGADO É ADMIN OU CUIDADOR
-        if usuario["role"].lower() not in ["admin", "cuidador"]:
-            return jsonify({
-                "erro": "Usuário sem permissão para registrar administração."
-            }), 403
 
         #VERIFICA SE O MEDICAMENTO EXISTE 
         cursor.execute("""
@@ -126,18 +119,22 @@ def registrar_administracao():
             dados["horario_administrado"],
             dados["dosagem_administrada"],
             dados["status"],
-            dados["obs"]
+            dados.get("obs")
         ))
 
+        administracao_id = cursor.lastrowid
+
         conexao.commit()
+
         return jsonify({
             "msg": "Administração registrada com sucesso.",
 
             "administração": {
-                "id": cursor.lastrowid,
+                "id": administracao_id,
                 "dosagem_administrada": dados["dosagem_administrada"],
+                "horario_previsto": dados.get("horario_administrado."),
                 "horario_administrado": dados["horario_administrado"],
-                "obs": dados["obs"]
+                "obs": dados.get("obs")
             },
 
             "medicamento": {
@@ -172,7 +169,7 @@ def registrar_administracao():
 @administracao_medicamentos_bp.route("/administracao_medicamentos", methods= ['GET'])
 @jwt_required()
 @admin_required()
-def listar_administracores():
+def listar_administracoes():
 
     conexao = None
 
@@ -186,6 +183,7 @@ def listar_administracores():
                 am.paciente_id,
                 am.medicamento_id,
                 am.dosagem_administrada,
+                am.horario_previsto,
                 am.horario_administrado,
                 am.obs,
                 am.status,
@@ -229,6 +227,7 @@ def listar_administracores():
                 },
 
                 "dosagem_administrada": administracao["dosagem_administrada"],
+                "horario_previsto": administracao["horario_previsto"],
                 "horario_administrado": administracao["horario_administrado"],
                 "obs": administracao["obs"],
                 "status": administracao["status"],
@@ -252,34 +251,20 @@ def listar_administracores():
         if conexao:
             conexao.close()
 
-# LISTA ADMINISTRACOES POR PACIENTE
-@administracao_medicamentos_bp.route("/administracao_medicamentos/paciente/<int:paciente_id>", methods=['GET'])
+#PACIENTE CONSULTA O PROPRIO HISTORICO
+@administracao_medicamentos_bp.route("/administracao_medicamentos/paciente/meu-historico", methods=['GET'])
 @jwt_required()
-@roles_required("admin", "cuidador")
-def listar_administracoes_paciente(paciente_id):
+@roles_required("paciente")
+def meu_historico():
     conexao = None
 
     try:
-        usuario_id = get_jwt_identity()      
+        paciente_id = get_jwt_identity()      
 
         conexao = connect()
         cursor = conexao.cursor()
 
-        #BUSCA USUÁRIO LOGADO
-        cursor.execute("""
-            SELECT id, nome, role
-            FROM usuarios
-            WHERE id = ?
-        """, (usuario_id,))
-
-        usuario = cursor.fetchone()
-
-        if not usuario:
-            return jsonify({
-                "erro": "Usuário não encontrado."
-            }), 404
-
-        #VERIFICA SE O PACIENTE EXISTE
+        #BUSCA PACIENTE LOGADO
         cursor.execute("""
             SELECT id, nome
             FROM usuarios
@@ -290,29 +275,9 @@ def listar_administracoes_paciente(paciente_id):
         paciente = cursor.fetchone()
 
         if not paciente:
-             return jsonify({
-                 "erro": "Paciente não encontrado."
-             }), 404
-
-        #SE FOR CUIDADOR, VERIFICA SE ESTA VINCULADO AO PACIENTE
-        if usuario["role"].lower() == "cuidador":
-
-            cursor.execute("""
-                SELECT id
-                FROM cuidadores_pacientes
-                WHERE cuidador_id = ?
-                AND paciente_id = ?
-            """, (
-                usuario_id,
-                paciente_id
-            ))
-
-            vinculo = cursor.fetchone()
-
-            if not vinculo:
-                return jsonify({
-                    "erro": "Cuidador não está vinculado a este paciente."
-                }), 403
+            return jsonify({
+                "erro": "Paciente não encontrado."
+            }), 404
 
         #BUSCAR AS ADMINISTRACOES DO PACIENTE
         cursor.execute("""
@@ -349,7 +314,7 @@ def listar_administracoes_paciente(paciente_id):
 
         if not administracoes:
             return jsonify({
-                "msg": "Este paciente não possui registros de administação."
+                "msg": "Você não possui registros de administração."
             }), 200
 
         lista = []
@@ -390,6 +355,106 @@ def listar_administracoes_paciente(paciente_id):
             "erro": str(e)
         }), 500
 
+
+    finally:
+        if conexao:
+            conexao.close()
+
+                                                                                                                                                                                                                                    #CU                         IDADOR CONSULTA O HISTORICO DOS PROPRIOS PACIENTES
+@administracao_medicamentos_bp.route("/admin          istracoes_medicamentos/cuidador/meus-pacientes", methods=['GET'])
+@jwt_required()
+@roles_required("cuidador")
+def historico_meus_pacientes():
+    conexao = None
+
+    try:
+        cuidador_id = get_jwt_identity()
+
+        conexao = connect()
+        cursor = conexao.cursor()
+
+        #BUSCA AS ADMINISTRACOES DOS PACIENTES VINCULADOS AO CUIDADOR
+        cursor.execute("""
+            SELECT 
+                am.id,
+                am.paciente_id,
+                am.medicamento_id,
+                am.horario_previsto,
+                am.horario_administrado,
+                am.dosagem_administrada,
+                am.obs,
+                am.status,
+
+                p.nome AS paciente_nome,
+
+                m.nome AS medicamento_nome,
+                
+                r.id AS responsavel_id,
+                r.nome AS responsavel_nome,
+                r.role AS responsavel_role
+            FROM  administracao_medicamentos am
+
+            JOIN cuidadores_pacientes cp
+                ON cp.paciente_id = am.paciente_id
+            
+            JOIN usuarios p
+                ON p.id = am.paciente_id
+
+            JOIN medicamentos m
+                ON m.id = am.medicamento_id
+            
+            JOIN usuarios u
+                ON r.id = am.responsavel_id
+            
+            WHERE cp.cuidador_id = ?
+
+            ORDER BY am.id DESC
+        """, (cuidador_id,))
+
+        administracoes = cursor.fetchall()
+
+        if not administracoes:
+            return jsonify({
+                "msg": "Seus pacientes não possuem registros de administrações."
+            }), 200
+
+        lista = []
+
+        for administracao in administracoes:
+            lista.append({
+                "id": administracao["id"],
+
+                "paciente": {
+                    "id": administracao["paciente_id"],
+                    "nome": administracao["paciente_nome"]
+                },
+
+                "medicamento": {
+                    "id": administracao["medicamento_id"],
+                    "nome": administracao["medicamento_nome"]
+                },
+
+                "horario_previsto": administracao["horario_previsto"],
+                "horario_administrado":administracao["horario_administracao"],
+                "dosagem_administrada": administracao["dosagem_administrada"],
+                "obs": administracao["obs"],
+                "status": administracao["status"],
+
+                "responsavel": {
+                    "id": administracao["responsavel_id"],
+                    "nome": administracao["responsavel_nome"],
+                    "role": administracao["responsavel_role"]
+                }
+            })
+
+            return jsonify({
+                "administracoes": lista
+            }), 200
+
+    except Exception as e:
+        return jsonify({
+            "erro": str(e)
+        }),  500
 
     finally:
         if conexao:
