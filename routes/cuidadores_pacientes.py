@@ -370,12 +370,12 @@ def meus_pacientes():
         if conexao:
             conexao.close()
 
-#PACIENTE CONSULTA OS PROPRIOS CUIDAORES
+#PACIENTE CONSULTA OS PROPRIOS CUIDADORES
 @cuidadores_pacientes_bp.route("/cuidadores_pacientes/meus-cuidadores", methods=['GET'])
 @jwt_required()
 @roles_required("paciente")
 def meus_cuidadores():
-    conexo = None
+    conexao = None
 
     try:
         conexao = connect()
@@ -405,7 +405,7 @@ def meus_cuidadores():
 
         if not cuidadores:
             return jsonify({
-                "erro": "Você mão possui cuidadores vinculados."
+                "erro": "Você não possui cuidadores vinculados."
             }), 200
 
         lista = [dict(cuidador) for cuidador in cuidadores]
@@ -481,6 +481,7 @@ def remover_vinculo():
             return jsonify({
                 "erro": "O cuidador_id informado não pertence a um cuidador."
             }), 400
+        
         #VERIFICA SE O PACIENTE EXISTE
         if not paciente:
             return jsonify({
@@ -527,7 +528,6 @@ def remover_vinculo():
             "msg": "Vínculo removido com sucesso.",
 
             "vinculo_removido": {
-
                 "cuidador": {
                     "id": cuidador["id"],
                     "nome": cuidador["nome"]

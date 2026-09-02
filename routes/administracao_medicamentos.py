@@ -132,7 +132,7 @@ def registrar_administracao():
             "administração": {
                 "id": administracao_id,
                 "dosagem_administrada": dados["dosagem_administrada"],
-                "horario_previsto": dados.get("horario_administrado."),
+                "horario_previsto": dados.get("horario_previsto"),
                 "horario_administrado": dados["horario_administrado"],
                 "obs": dados.get("obs")
             },
@@ -360,8 +360,8 @@ def meu_historico():
         if conexao:
             conexao.close()
 
-                                                                                                                                                                                                                                    #CU                         IDADOR CONSULTA O HISTORICO DOS PROPRIOS PACIENTES
-@administracao_medicamentos_bp.route("/admin          istracoes_medicamentos/cuidador/meus-pacientes", methods=['GET'])
+#CUIDADOR CONSULTA O HISTORICO DOS PROPRIOS PACIENTES
+@administracao_medicamentos_bp.route("/administracao_medicamentos/cuidador/meus-pacientes", methods=['GET'])
 @jwt_required()
 @roles_required("cuidador")
 def historico_meus_pacientes():
@@ -389,9 +389,9 @@ def historico_meus_pacientes():
 
                 m.nome AS medicamento_nome,
                 
-                r.id AS responsavel_id,
-                r.nome AS responsavel_nome,
-                r.role AS responsavel_role
+                u.id AS responsavel_id,
+                u.nome AS responsavel_nome,
+                u.role AS responsavel_role
             FROM  administracao_medicamentos am
 
             JOIN cuidadores_pacientes cp
@@ -404,7 +404,7 @@ def historico_meus_pacientes():
                 ON m.id = am.medicamento_id
             
             JOIN usuarios u
-                ON r.id = am.responsavel_id
+                ON u.id = am.responsavel_id
             
             WHERE cp.cuidador_id = ?
 
@@ -435,7 +435,7 @@ def historico_meus_pacientes():
                 },
 
                 "horario_previsto": administracao["horario_previsto"],
-                "horario_administrado":administracao["horario_administracao"],
+                "horario_administrado":administracao["horario_administrado"],
                 "dosagem_administrada": administracao["dosagem_administrada"],
                 "obs": administracao["obs"],
                 "status": administracao["status"],
@@ -447,9 +447,9 @@ def historico_meus_pacientes():
                 }
             })
 
-            return jsonify({
-                "administracoes": lista
-            }), 200
+        return jsonify({
+            "administracoes": lista
+        }), 200
 
     except Exception as e:
         return jsonify({
@@ -472,10 +472,10 @@ def editar_administracoes(id):
 
         if not dados:
             return jsonify({
-                "erro": "Dados não encontrado."
+                "erro": "Dados não encontrados."
             }), 400
 
-        usuario_id = get_jwt_identity()
+        usuario_id = int(get_jwt_identity())
 
         conexao = connect()
         cursor = conexao.cursor()
@@ -513,7 +513,7 @@ def editar_administracoes(id):
 
         if not administracao:
             return jsonify ({
-                "erro": "Administração não encontrado."
+                "erro": "Administração não encontrada."
             }), 404
 
         #SE FOR CUIDADOR, SÓ PODE EDITAR O QUE ELE MESMO REGISTROU
@@ -531,12 +531,31 @@ def editar_administracoes(id):
             "obs"
         ]
 
+        #VERIFICA SE FOI ENVIADO ALGUM CAMPO NAO PERMITIDO
+        for campo in dados:
+            if campo not in campos_permitidos:
+                return jsonify({
+                    "erro": f"O campo '{campo}' não pode ser editado."
+                }), 400
+
+        campos_obrigatorios = [
+            "horario_administrado",
+            "dosagem_administrada",
+            "status"
+        ]
+
+        for campo in campos_obrigatorios:
+            if campo in dados and (dados[campo] is None or dados[campo] == ""):
+                return jsonify({
+                    "erro": f"O campo '{campo}' não pode ser vazio."
+                }), 400
+
         campos = []
         valores= []
 
         for campo in campos_permitidos:
             if campo in dados:
-                campos.append(f"{campo} =?")
+                campos.append(f"{campo} = ?")
                 valores.append(dados[campo])
 
         if not campos:
@@ -556,7 +575,8 @@ def editar_administracoes(id):
         conexao.commit()
 
         return jsonify({
-            "msg": "Administração atualizada com sucesso."
+            "msg": "Administração atualizada com sucesso.",
+            "campos_atualizados": dados
         }), 200
 
     except Exception as e:
@@ -574,13 +594,29 @@ def editar_administracoes(id):
 #EXCLUIR REGISTRO DE ADMINISTRACAO
 @administracao_medicamentos_bp.route("/administracao_medicamentos/deletar/<int:id>", methods=['DELETE'])
 @jwt_required()
-@admin_required()
+@roles_required("admin", "cuidador")
 def excluir_administracao(id):
     conexao = None
 
     try:
+        usuario_id = int(get_jwt_identity())
+
         conexao = connect()
         cursor = conexao.cursor()
+
+        #BUSCAR USUARIO LOGADO
+        cursor.execute("""
+            SELECT id, nome, role
+            FROM usuarios
+            WHERE id = ?
+        """, (usuario_id,))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+            return jsonify({
+                "erro": "Usuário não encontrado."
+            }), 404
 
         #VERIFICA SE A ADMINISTRACAO EXISTE
         cursor.execute("""
@@ -604,25 +640,39 @@ def excluir_administracao(id):
                  "erro": "Administração não encontrada."
              }), 404
 
-        #EXCLUI A ADMINISTRACAO
+        #VERIFICA SE JA ESTA DESATIVADA
+        if administracao["status"] == "desativada":
+            return jsonify({
+                "erro": "Esta administração já está desativada."
+                }), 400
+
+        #CUIDADOR SO PODE ANULAR O QUE ELE MESMO REGISTROU
+        if usuario["role"].lower() == "cuidador":
+            if administracao["responsavel_id"] != usuario_id:
+                return jsonify({
+                    "erro": "Cuidador não pode desativar a administração registrada por outro cuidador."
+                }), 403
+
+        #ANULA A ADMINISTRACAO
         cursor.execute("""
-            DELETE FROM administracao_medicamentos
+            UPDATE administracao_medicamentos
+            SET status = 'desativada'
             WHERE id = ?
         """, (id,))
 
         conexao.commit()
 
         return jsonify({
-            "msg": "Administração excluída com sucesso.",
+            "msg": "Administração desativada com sucesso.",
 
-            "administracao_excluida": {
+            "administracao": {
                 "id": administracao["id"],
                 "medicamento_id": administracao["medicamento_id"],
                 "paciente_id": administracao["paciente_id"],
                 "responsavel_id": administracao["responsavel_id"],
                 "horario_administrado": administracao["horario_administrado"],
                 "dosagem_administrada": administracao["dosagem_administrada"],
-                "status": administracao["status"],
+                "status": "desativada",
                 "obs": administracao["obs"]
             }
         }), 200
