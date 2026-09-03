@@ -1,7 +1,12 @@
 from flask import Blueprint, jsonify, request
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from utils.permissoes import roles_required
+from utils import (
+    roles_required,
+    buscar_role,
+    erro_role,
+    paciente_status
+)
 
 medicamentos_bp = Blueprint("medicamentos",__name__)
 
@@ -36,38 +41,21 @@ def criar_medicamentos():
         conexao = connect()
         cursor = conexao.cursor()
 
-        #VERIFICA SE O PACIENTE EXISTE
-        cursor.execute("""
-            SELECT
-                pacientes.id,
-                pacientes.nome,
-                pacientes.status,
-                usuarios.role
-            FROM pacientes
+        #VERIFICA SE É PACIENTE
+        paciente, erro, role_nome = buscar_role(cursor, dados["paciente_id"], "paciente")
 
-            JOIN usuarios
-                ON pacientes.id = usuarios.id
+        if erro:
+            return erro_role(erro, role_nome, paciente)
 
-            WHERE pacientes.id = ?
-        """,(
-            dados["paciente_id"],
-        ))
+        #VERIFICA STATUS DO PACIENTE
+        paciente_cadastrado = paciente_status(cursor, dados["paciente_id"])
 
-        paciente = cursor.fetchone()
-
-        if not paciente:
+        if not paciente_cadastrado:
             return jsonify({
                 "erro": "Paciente não encontrado."
             }), 404
-        
-        #VERIFICA SE É PACIENTE
-        if paciente["role"].lower() != "paciente":
-            return jsonify({
-                "erro": "O ID informado não pertence a um paciente.",
-            }), 400
 
-        #VERIFICA SE PACIENTE ESTA ATIVO
-        if paciente["status"] != "ativo":
+        if paciente_cadastrado["status"] != "ativo":
             return jsonify({
                 "erro": "Não é possível cadastrar medicamento para paciente inativo."
             }), 400
@@ -137,31 +125,12 @@ def listar_medicamentos_paciente(id):
         conexao = connect()
         cursor = conexao.cursor()
 
-        # VERIFICA SE O PACIENTE EXISTE
-        cursor.execute("""
-            SELECT 
-                pacientes.id,
-                pacientes.nome,
-                usuarios.role
-            FROM pacientes
-            JOIN usuarios
-                ON pacientes.id = usuarios.id
-            WHERE pacientes.id = ?
-        """, (id,))
+        # VERIFICA SE O USUÁRIO É PACIENTE
+        paciente, erro, role_nome = buscar_role(cursor, id, "paciente")
 
-        paciente = cursor.fetchone()
-
-        if not paciente:
-            return jsonify({
-                "erro": "Paciente não encontrado."
-            }), 404
-
-        # VERIFICA SE REALMENTE É PACIENTE
-        if paciente["role"].lower() != "paciente":
-            return jsonify({
-                "erro": "O ID informado não pertence a um paciente."
-            }), 400
-
+        if erro:
+            return erro_role(erro, role_nome, paciente)
+        
         # BUSCA O MEDICAMENTO DO PACIENTE
         cursor.execute("""
             SELECT 
@@ -217,18 +186,11 @@ def meus_medicamentos():
         cursor = conexao.cursor()
 
         #BUSCA PACIENTE LOGADO
-        cursor.execute("""
-            SELECT id, nome
-            FROM usuarios
-            WHERE id = ?
-        """, (paciente_id,))
+        paciente, erro, role_nome = buscar_role(cursor, paciente_id, "paciente")
 
-        paciente = cursor.fetchone()
-
-        if not paciente:
-            return jsonify({
-                "erro": "Paciente não encontrado."
-            }), 404
+        # RETORNA O ERRO SE A ROLE NAO EXISTIR
+        if erro:
+            return erro_role(erro, role_nome, paciente)
 
         #BUSCA O MEDICAMENTO DO PACIENTE
         cursor.execute("""
@@ -283,19 +245,13 @@ def meus_pacientes():
         conexao = connect()
         cursor = conexao.cursor()
 
-        #BUSCA CUIDADOR LOGADO
-        cursor.execute("""
-            SELECT id, nome
-            FROM usuarios
-            WHERE id = ?
-        """, (cuidador_id,))
 
-        cuidador = cursor.fetchone()
+        # VERIFICA SE O ID INFORMADO COMO CUIDADOR EXISTE
+        cuidador, erro, role_nome = buscar_role(cursor, cuidador_id, "cuidador")
 
-        if not cuidador:
-            return jsonify({
-                "erro": "Cuidador não encontrado."
-            }), 404
+        # RETORNA O ERRO SE A ROLE NAO EXISTIR
+        if erro:
+            return erro_role(erro, role_nome, cuidador)
 
         #BUSCAR OS MEDICAMENTOS DOS PACIENTES VINCULADOS
         cursor.execute("""

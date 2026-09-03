@@ -140,9 +140,6 @@ def listar_pacientes_cuidador(id):
         # VERIFICA SE O ID INFORMADO COMO CUIDADOR EXISTE
         cuidador, erro, role_nome = buscar_role(cursor, id, "cuidador")
 
-        print("erro:", repr(erro))
-        print("role_nome:", role_nome)
-
         # RETORNA O ERRO SE A ROLE NAO EXISTIR
         if erro:
             return erro_role(erro, role_nome, cuidador)
