@@ -1,8 +1,14 @@
 from flask import Blueprint, jsonify, request
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from utils.permissoes import roles_required
 from datetime import datetime
+from utils import (
+    roles_required,
+    buscar_usuario_por_id,
+    buscar_role,
+    erro_role,
+    vinculo_cp
+    )
 
 relatorios_diarios_bp = Blueprint("relatorios_diarios", __name__)
 
@@ -26,19 +32,13 @@ def criar_relatorio():
                 "erro": "paciente_id é obrigatório."
             }), 400
 
-        usuario_id = get_jwt_identity()
+        usuario_id = int(get_jwt_identity())
 
         conexao = connect()
         cursor = conexao.cursor()
 
         #BUSCAR O USUARIO LOGADO
-        cursor.execute("""
-            SELECT id, nome, role
-            FROM usuarios
-            WHERE id = ?
-        """, (usuario_id,))
-
-        usuario = cursor.fetchone()
+        usuario = buscar_usuario_por_id(cursor, usuario_id)
 
         if not usuario:
             return jsonify({
@@ -46,34 +46,14 @@ def criar_relatorio():
             }), 404
 
         #VERIFICA SE O PACIENTE EXISTE
-        cursor.execute("""
-            SELECT id, nome
-            FROM usuarios
-            WHERE id = ?
-            AND role = 'paciente'
-        """, (dados["paciente_id"],))
+        paciente, erro, role_nome = buscar_role(cursor, dados["paciente_id"], "paciente")
 
-        paciente = cursor.fetchone()
-
-        if not paciente:
-            return jsonify({
-                "erro": "Paciente não encontrado."
-            }), 404
+        if erro:
+            return erro_role(erro, role_nome, paciente)
 
         #SE FOR CUIDADOR, VERIFICA SE ESTÁ VINCULADO AO PACIENTE
         if usuario["role"].lower() == "cuidador":
-
-            cursor.execute("""
-                SELECT id
-                FROM cuidadores_pacientes
-                WHERE cuidador_id = ?
-                AND paciente_id = ?
-            """, (
-                usuario_id,
-                dados["paciente_id"]
-            ))
-
-            vinculo = cursor.fetchone()
+            vinculo = vinculo_cp(cursor, usuario_id, dados["paciente_id"])
 
             if not vinculo:
                 return jsonify({
@@ -147,19 +127,13 @@ def listar_relatorios_paciente(paciente_id):
     conexao = None
 
     try:
-        usuario_id = get_jwt_identity()
+        usuario_id = int(get_jwt_identity())
 
         conexao = connect()
         cursor = conexao.cursor()
 
         #BUSCAR USUARIO LOGADO
-        cursor.execute("""
-            SELECT id, nome, role
-            FROM usuarios
-            WHERE id = ?
-        """, (usuario_id,))
-
-        usuario = cursor.fetchone()
+        usuario = buscar_usuario_por_id(cursor, usuario_id)
 
         if not usuario:
             return jsonify({
@@ -167,34 +141,14 @@ def listar_relatorios_paciente(paciente_id):
             }), 404
 
         #VERIFICA SE O PACIENTE EXISTE
-        cursor.execute("""
-            SELECT id, nome
-            FROM usuarios
-            WHERE id = ?
-            AND role = 'paciente'
-        """, (paciente_id,))
+        paciente, erro, role_nome = buscar_role(cursor, paciente_id, "paciente")
 
-        paciente = cursor.fetchone()
-
-        if not paciente:
-            return jsonify({
-                "erro": "Paciente não encontrado."
-            }), 404
+        if erro:
+            return erro_role(erro, role_nome, paciente)
 
         #VERIFICA VINCULO ENTRE CUIDADOR E PACIENTE
         if usuario["role"].lower() == "cuidador":
-
-            cursor.execute("""
-                SELECT id
-                FROM cuidadores_pacientes
-                WHERE cuidador_id = ?
-                AND paciente_id = ?
-            """,(
-                usuario_id,
-                paciente_id
-            ))
-
-            vinculo = cursor.fetchone()
+            vinculo = vinculo_cp(cursor, usuario_id, paciente_id) 
 
             if not vinculo:
                 return jsonify({
@@ -231,7 +185,7 @@ def listar_relatorios_paciente(paciente_id):
 
         if not relatorios:
             return jsonify({
-                "msg": "Este paciente não possui relatório cadastrados."
+                "msg": "Este paciente não possui relatórios cadastrados."
             }), 200
 
         lista = []
@@ -371,27 +325,20 @@ def editar_relatorios(id):
 
         if not dados:
             return jsonify({
-                "erro": "Relatório não econtrados."
+                "erro": "Dados não econtrado."
             }), 400
 
-        #usuario_id = get_jwt_identity()
-        usuario_id = 7
+        usuario_id = int(get_jwt_identity())
 
         conexao = connect()
         cursor = conexao.cursor()
 
         #BUSCA USUARIO LOGADO
-        cursor.execute("""
-            SELECT id, nome, role
-            FROM usuarios
-            WHERE id = ?
-        """, (usuario_id,))
-
-        usuario = cursor.fetchone()
-
+        usuario = buscar_usuario_por_id(cursor, usuario_id)
+ 
         if not usuario:
             return jsonify({
-                "erro": "Usuáro não encontrado."
+                "erro": "Usuário não encontrado."
             }), 404
 
         #BUSCAR O RELATORIO
@@ -415,7 +362,7 @@ def editar_relatorios(id):
 
         if not relatorio:
             return jsonify({
-                "erro": "Relatórios não encontrado."
+                "erro": "Relatório não encontrado."
             }), 404
 
         #CUIDADOR SO PODE EDITAR RELATORIO QUE ELE MESMO CRIOU
@@ -426,23 +373,13 @@ def editar_relatorios(id):
                     "erro": "Cuidador não pode editar relatório criado por outro usuário."
                 }), 403
             
-        #VERIFICAR SE O CUIDADOR TEM VINCULO COM O PACIENTE
-        cursor.execute("""
-            SELECT id
-            FROM cuidadores_pacientes
-            WHERE cuidador_id = ?
-            AND paciente_id = ?
-        """,(
-            usuario_id,
-            relatorio["paciente_id"]
-        ))
+            # VERIFICA SE AINDA POSSUI VÍNCULO COM O PACIENTE
+            vinculo = vinculo_cp(cursor, usuario_id, relatorio["paciente_id"])
 
-        vinculo = cursor.fetchone()
-
-        if not vinculo:
-            return jsonify({
-                "erro": "Cuidador não está vinculado a este paciente."
-            }), 403
+            if not vinculo:
+                return jsonify({
+                    "erro": "Cuidador não está vinculado a este paciente."
+                }), 403
 
 
         #CAMPOS QUE PODER SER EDITADOS
@@ -455,6 +392,12 @@ def editar_relatorios(id):
             "observacoes"
         ]
 
+        for campo in dados:
+            if campo not in campos_permitidos:
+                return jsonify({
+                    "erro": f"O campo '{campo}' não pode ser editado."
+                }), 400
+            
         campos = []
         valores = []
 
