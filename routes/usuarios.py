@@ -1,7 +1,7 @@
 from flask import jsonify, request, Blueprint
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from utils.permissoes import admin_required
+from utils.permissoes import roles_required
 from werkzeug.security import generate_password_hash
 
 import sqlite3
@@ -11,7 +11,7 @@ usuario_bp = Blueprint("usuarios", __name__)
 # CONSULTAR USUARIO (TODOS)
 @usuario_bp.route('/usuarios/consultar', methods=['GET'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def consultar_usuario():
 
     conexao = connect()
@@ -34,7 +34,7 @@ def consultar_usuario():
 # CONSULTAR USUARIO POR (ID)
 @usuario_bp.route('/usuarios/consultar/<int:id>', methods=['GET'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def consultar_usuario_id(id):
 
     conexao = connect()
@@ -60,7 +60,7 @@ def consultar_usuario_id(id):
 # EDITAR USUARIO PARCIAL (ID)
 @usuario_bp.route("/usuarios/editar/<int:id>", methods=['PATCH'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def atualizar_usuario_parcial(id):
 
     dados = request.get_json()
@@ -197,7 +197,7 @@ def atualizar_usuario_parcial(id):
 # EXCLUIR USUARIO
 @usuario_bp.route('/usuarios/deletar/<int:id>', methods=['DELETE'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def excluir_usuario(id):
 
     conexao = connect()
@@ -294,7 +294,7 @@ def excluir_usuario(id):
 # CRIAR USUARIO
 @usuario_bp.route('/usuarios/criar', methods=['POST'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def criar_usuario():
 
     novo_usuario = request.get_json()

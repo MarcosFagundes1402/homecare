@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from utils.permissoes import admin_required, roles_required
+from utils.permissoes import roles_required
 
 administracao_medicamentos_bp = Blueprint("administracao_medicamentos", __name__)
 
@@ -168,7 +168,7 @@ def registrar_administracao():
 #LISTAR TODOS AS ADMINISTRAÇÕES
 @administracao_medicamentos_bp.route("/administracao_medicamentos", methods= ['GET'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def listar_administracoes():
 
     conexao = None

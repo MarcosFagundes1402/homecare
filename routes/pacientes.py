@@ -1,7 +1,7 @@
 from flask import jsonify, request, Blueprint
 from database.connect import connect
 from flask_jwt_extended import jwt_required
-from utils.permissoes import admin_required
+from utils.permissoes import roles_required
 import sqlite3
 
 pacientes_bp = Blueprint("pacientes", __name__)
@@ -9,7 +9,7 @@ pacientes_bp = Blueprint("pacientes", __name__)
 # CRIANDO PACIENTE 
 @pacientes_bp.route("/pacientes/criar", methods=['POST'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def criar_pacientes():
 
     conexao = None
@@ -63,7 +63,7 @@ def criar_pacientes():
 # CONSULTADO TODOS PACIENTES
 @pacientes_bp.route("/pacientes", methods=['GET'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def mostrar_pacientes():
 
     conexao = None
@@ -92,7 +92,7 @@ def mostrar_pacientes():
 #CONSULTANDO PACIENTES POR ID
 @pacientes_bp.route('/pacientes/<int:id>', methods=['GET'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def consultar_paciente_id(id):
 
     conexao = connect()
@@ -115,7 +115,7 @@ def consultar_paciente_id(id):
 #EDITAR PACIENTE TOTAL
 @pacientes_bp.route('/pacientes/<int:id>', methods=['PUT'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def editar_paciente(id):
 
     paciente_editado = request.get_json()
@@ -179,7 +179,7 @@ def editar_paciente(id):
 # EXCLUIR PACIENTE 
 @pacientes_bp.route('/pacientes/<int:id>', methods=['DELETE'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def excluir_paciente(id):
 
     conexao = connect()

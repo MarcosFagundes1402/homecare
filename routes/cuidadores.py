@@ -1,14 +1,15 @@
 from flask import jsonify, request, Blueprint
 from database.connect import connect
 from flask_jwt_extended import jwt_required
-from utils.permissoes import admin_required
+from utils.permissoes import roles_required
 import sqlite3
 
 cuidadores_bp = Blueprint("cuidadores", __name__)
 
 # CRIANDO CUIDADO
 @cuidadores_bp.route("/cuidadores/criar", methods=['POST'])
-
+@jwt_required()
+@roles_required("admin")
 def criar_cuidador():
 
     conexao = None
@@ -63,7 +64,7 @@ def criar_cuidador():
 #CONSULTAR TODOS OS CUIDADORES
 @cuidadores_bp.route("/cuidadores", methods=['GET'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def mostrar_cuidadores():
 
     try:
@@ -89,7 +90,7 @@ def mostrar_cuidadores():
 #CONSULTANDO CUIDADORES POR ID
 @cuidadores_bp.route("/cuidadores/<int:id>", methods=['GET'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def consultar_cuidador_id(id):
 
     conexao = connect()
@@ -111,7 +112,7 @@ def consultar_cuidador_id(id):
 #EDITAR CUIDADOR TOTAL
 @cuidadores_bp.route("/cuidadores/<int:id>", methods=['PUT'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def editar_cuidador(id):
 
     cuidador_editado = request.get_json()
@@ -178,7 +179,7 @@ def editar_cuidador(id):
 #EXCLUIR CUIDADOR
 @cuidadores_bp.route("/cuidadores/<int:id>", methods=['DELETE'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def excluir_cuidador(id):
 
     conexao = connect()

@@ -1,7 +1,7 @@
 from flask import Blueprint, jsonify, request
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from utils.permissoes import admin_required, roles_required
+from utils.permissoes import roles_required
 from datetime import datetime
 
 relatorios_diarios_bp = Blueprint("relatorios_diarios", __name__)
@@ -274,8 +274,8 @@ def listar_relatorios_paciente(paciente_id):
 
 # LISTAR TODOS OS RELATORIOS DIARIOS
 @relatorios_diarios_bp.route("/relatorios_diarios", methods=['GET'])
-#@jwt_required()
-#@admin_required()
+@jwt_required()
+@roles_required("admin")
 def listar_relatorios():
     conexao = None
 
@@ -361,8 +361,8 @@ def listar_relatorios():
 
 #EDITAR RELATORIO DIARIO
 @relatorios_diarios_bp.route("/relatorios_diarios/editar/<int:id>", methods=['PATCH'])
-#@jwt_required()
-#@roles_required("admin", "cuidador")
+@jwt_required()
+@roles_required("admin", "cuidador")
 def editar_relatorios(id):
     conexao = None
 
@@ -498,7 +498,7 @@ def editar_relatorios(id):
 #EXCLUIR RELATORIOS DIARIO
 @relatorios_diarios_bp.route("/relatorios_diarios/deletar/<int:id>", methods=['DELETE'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def excluir_relatorios(id):
     conexao = None
 

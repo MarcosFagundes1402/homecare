@@ -1,14 +1,14 @@
 from flask import Blueprint, jsonify, request
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from utils.permissoes import admin_required, roles_required
+from utils.permissoes import roles_required
 
 medicamentos_bp = Blueprint("medicamentos",__name__)
 
 #CRIA MEDICAMENTO PARA UM PACIENTE
 @medicamentos_bp.route("/medicamentos/criar", methods=['POST'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def criar_medicamentos():
     conexao = None
 
@@ -129,7 +129,7 @@ def criar_medicamentos():
 # ADMIN CONSULTAR MEDICAMENTOS DE UM PACIENTE
 @medicamentos_bp.route("/medicamentos/consultar/<int:id>", methods=['GET'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def listar_medicamentos_paciente(id):
     conexao = None
 
@@ -369,7 +369,7 @@ def meus_pacientes():
 #EDITA UM MEDICAMENTO
 @medicamentos_bp.route("/medicamentos/<int:id>", methods=['PATCH'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def editar_medicamento(id):
     conexao = None
 
@@ -473,7 +473,7 @@ def editar_medicamento(id):
 #EXCLUIR UM MEDICAMENTO
 @medicamentos_bp.route("/medicamentos/<int:id>", methods=['DELETE'])
 @jwt_required()
-@admin_required()
+@roles_required("admin")
 def excluir_medicamento(id):
     conexao = None
 
