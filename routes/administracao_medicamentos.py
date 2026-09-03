@@ -1,7 +1,14 @@
 from flask import Blueprint, jsonify, request
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from utils.permissoes import roles_required
+from datetime import datetime
+from utils import (
+    roles_required,
+    buscar_usuario_por_id,
+    vinculo_cp,
+    erro_role,
+    buscar_role
+    )
 
 administracao_medicamentos_bp = Blueprint("administracao_medicamentos", __name__)
 
@@ -26,30 +33,23 @@ def registrar_administracao():
             "medicamento_id" not in dados
             or "paciente_id" not in dados
             or "status" not in dados
-            or "horario_administrado" not in dados
             or "dosagem_administrada" not in dados
         ):
             return jsonify({
                 "erro": (
-                    "medicamento_id, paciente_id, status, horario_administrado "
+                    "medicamento_id, paciente_id, status "
                     "e dosagem_administrada são obrigatórios."
                     )
             }), 400
 
         #PEGA O ID DO USUÁRIO LOGADO
-        usuario_id = get_jwt_identity()
+        usuario_id = int(get_jwt_identity())
 
         conexao = connect()
         cursor = conexao.cursor()
 
         #VERIFICA QUEM ESTÁ LOGADO
-        cursor.execute("""
-            SELECT id, nome, role
-            FROM usuarios
-            WHERE id = ?
-        """, (usuario_id,))
-
-        usuario = cursor.fetchone()
+        usuario = buscar_usuario_por_id(cursor, usuario_id)
 
         if not usuario:
             return jsonify({
@@ -81,23 +81,35 @@ def registrar_administracao():
         #VERIFICA SE O CUIDADOR ESTÁ VINCULADO AO PACIENTE
         if usuario["role"].lower() == "cuidador":
 
-            cursor.execute("""
-                SELECT id
-                FROM cuidadores_pacientes
-                WHERE cuidador_id = ?
-                AND paciente_id = ?
-            """, (
-                usuario_id,
-                dados["paciente_id"]
-            ))
-
-            vinculo = cursor.fetchone()
+            vinculo = vinculo_cp(cursor, usuario_id, dados["paciente_id"])
 
             if not vinculo:
                 return jsonify({
                     "erro": "Cuidador não está vinculado a este paciente."
                 }), 403
+            
+        #VERIFICA SE JÁ EXISTE ADMINISTRACAO NO MESMO HORARIO
+        horario_administrado = datetime.now().strftime("%d-%m-%Y | %H:%M")
 
+        cursor.execute("""
+            SELECT id
+            FROM administracao_medicamentos
+            WHERE medicamento_id = ?
+            AND paciente_id = ?
+            AND horario_administrado = ?
+        """, (
+            dados["medicamento_id"],
+            dados["paciente_id"],
+            horario_administrado
+        ))
+
+        administracao_existente = cursor.fetchone()
+
+        if administracao_existente:
+            return jsonify({
+                "erro": "Já existe uma administração deste medicamento no mesmo horário."
+            }), 409
+        
         #REGISTRAR A ADMINISTRAÇÃO DO MEDICAMENTO
         cursor.execute("""
             INSERT INTO administracao_medicamentos(
@@ -116,7 +128,7 @@ def registrar_administracao():
             dados["paciente_id"],
             usuario_id,
             dados.get("horario_previsto"),
-            dados["horario_administrado"],
+            horario_administrado,
             dados["dosagem_administrada"],
             dados["status"],
             dados.get("obs")
@@ -133,7 +145,7 @@ def registrar_administracao():
                 "id": administracao_id,
                 "dosagem_administrada": dados["dosagem_administrada"],
                 "horario_previsto": dados.get("horario_previsto"),
-                "horario_administrado": dados["horario_administrado"],
+                "horario_administrado": horario_administrado,
                 "obs": dados.get("obs")
             },
 
@@ -182,6 +194,7 @@ def listar_administracoes():
                 am.id,
                 am.paciente_id,
                 am.medicamento_id,
+                am.responsavel_id,
                 am.dosagem_administrada,
                 am.horario_previsto,
                 am.horario_administrado,
@@ -233,6 +246,7 @@ def listar_administracoes():
                 "status": administracao["status"],
 
                 "responsavel": {
+                    "id": administracao["responsavel_id"],
                     "nome": administracao["responsavel_nome"],
                     "role": administracao["responsavel_role"]
                 }
@@ -259,25 +273,16 @@ def meu_historico():
     conexao = None
 
     try:
-        paciente_id = get_jwt_identity()      
+        paciente_id = int(get_jwt_identity())      
 
         conexao = connect()
         cursor = conexao.cursor()
 
-        #BUSCA PACIENTE LOGADO
-        cursor.execute("""
-            SELECT id, nome
-            FROM usuarios
-            WHERE id = ?
-            AND role = 'paciente'
-        """, (paciente_id,))
+        #VALIDA O PACIENTE LOGADO
+        paciente, erro, role_nome = buscar_role(cursor, paciente_id, "paciente")
 
-        paciente = cursor.fetchone()
-
-        if not paciente:
-            return jsonify({
-                "erro": "Paciente não encontrado."
-            }), 404
+        if erro:
+            return erro_role(erro, role_nome, paciente)
 
         #BUSCAR AS ADMINISTRACOES DO PACIENTE
         cursor.execute("""
@@ -368,7 +373,7 @@ def historico_meus_pacientes():
     conexao = None
 
     try:
-        cuidador_id = get_jwt_identity()
+        cuidador_id = int(get_jwt_identity())
 
         conexao = connect()
         cursor = conexao.cursor()
@@ -481,13 +486,7 @@ def editar_administracoes(id):
         cursor = conexao.cursor()
 
         #BUSCA O USUARIO LOGADO
-        cursor.execute("""
-            SELECT id, nome, role
-            FROM usuarios
-            WHERE id = ?
-        """, (usuario_id,))
-
-        usuario = cursor.fetchone()
+        usuario = buscar_usuario_por_id(cursor, usuario_id)
 
         if not usuario:
             return jsonify({
@@ -525,7 +524,6 @@ def editar_administracoes(id):
 
         #CAMPOS QUE PODEM SER EDITADOS
         campos_permitidos = [
-            "horario_administrado",
             "dosagem_administrada",
             "status",
             "obs"
@@ -539,7 +537,6 @@ def editar_administracoes(id):
                 }), 400
 
         campos_obrigatorios = [
-            "horario_administrado",
             "dosagem_administrada",
             "status"
         ]
@@ -551,7 +548,7 @@ def editar_administracoes(id):
                 }), 400
 
         campos = []
-        valores= []
+        valores = []
 
         for campo in campos_permitidos:
             if campo in dados:
@@ -576,6 +573,7 @@ def editar_administracoes(id):
 
         return jsonify({
             "msg": "Administração atualizada com sucesso.",
+            "administracao": id,
             "campos_atualizados": dados
         }), 200
 
@@ -605,13 +603,7 @@ def excluir_administracao(id):
         cursor = conexao.cursor()
 
         #BUSCAR USUARIO LOGADO
-        cursor.execute("""
-            SELECT id, nome, role
-            FROM usuarios
-            WHERE id = ?
-        """, (usuario_id,))
-
-        usuario = cursor.fetchone()
+        usuario = buscar_usuario_por_id(cursor, usuario_id)
 
         if not usuario:
             return jsonify({
@@ -646,14 +638,14 @@ def excluir_administracao(id):
                 "erro": "Esta administração já está desativada."
                 }), 400
 
-        #CUIDADOR SO PODE ANULAR O QUE ELE MESMO REGISTROU
+        # CUIDADOR SÓ PODE DESATIVAR O QUE ELE MESMO REGISTROU
         if usuario["role"].lower() == "cuidador":
             if administracao["responsavel_id"] != usuario_id:
                 return jsonify({
                     "erro": "Cuidador não pode desativar a administração registrada por outro cuidador."
                 }), 403
 
-        #ANULA A ADMINISTRACAO
+        #DESATIVA A ADMINISTRACAO
         cursor.execute("""
             UPDATE administracao_medicamentos
             SET status = 'desativada'
