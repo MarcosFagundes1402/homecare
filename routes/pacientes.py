@@ -11,97 +11,6 @@ from utils import (
 
 pacientes_bp = Blueprint("pacientes", __name__)
 
-# CRIANDO PACIENTE 
-@pacientes_bp.route("/pacientes/criar", methods=['POST'])
-@jwt_required()
-@roles_required("admin")
-def criar_pacientes():
-
-    conexao = None
-
-    try:
-        dados = request.get_json()
-
-        if not dados:
-            return jsonify({
-                'erro': 'Dados não enviados'
-            }), 400
-        
-        #CAMPOS OBRIGATORIOS
-        campos_obrigatorios = [
-            "id",
-            "cpf",
-            "data_nascimento",
-            "tel",
-            "endereco"
-        ]
-
-        for campo in campos_obrigatorios:
-            if campo not in dados or dados[campo] is None or dados [campo] == "":
-                return jsonify({
-                    "erro": f"O campo '{campo}' é obrigatório."
-                }), 400
-            
-        conexao = connect()
-        cursor = conexao.cursor()
-
-        paciente, erro, role_nome = buscar_role(cursor, dados["id"], "paciente")
-
-        if erro:
-            return erro_role(erro, role_nome, paciente)
-
-        # VERIFICA SE JÁ POSSUI CADASTRO DE PACIENTE
-        paciente_cadastrado = paciente_status(cursor, dados["id"])
-
-        if paciente_cadastrado:
-            return jsonify({
-                "erro": "Este paciente já possui cadastro."
-            }), 409
-
-        # CRIA O PACIENTE
-        
-        cursor.execute("""
-        INSERT INTO pacientes
-        (
-            id,
-            cpf,
-            data_nascimento,
-            tel,
-            endereco,
-            obs,
-            status
-        )
-
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,(
-            dados["id"],
-            dados["cpf"],
-            dados["data_nascimento"],
-            dados["tel"],
-            dados["endereco"],
-            dados.get("obs"),
-            dados.get("status", "ativo")
-        ))
-
-        conexao.commit()
-
-        return jsonify({
-            "msg": "Paciente cadastrado com sucesso",
-            "paciente_id": dados["id"]
-        }), 201
-    
-    except sqlite3.IntegrityError:
-        if conexao:
-            conexao.rollback()
-
-        return jsonify({
-            "erro": "CPF já cadastrado."
-        }), 400
-
-    finally:
-        if conexao:
-            conexao.close()
-
 # CONSULTADO TODOS PACIENTES
 @pacientes_bp.route("/pacientes/consulta", methods=['GET'])
 @jwt_required()
@@ -221,17 +130,26 @@ def editar_paciente(id):
             "obs"
         ]
 
+        #CAMPOS QUE NÃO PODEM FICAR VAZIOS
+        campos_vazio = [
+            "cpf",
+            "data_nascimento",
+            "tel",
+            "endereco"
+        ]
+
         #VALIDA CAMPO NAO PERMITIDO
-        for campo in dados:
-            if campo not in campos_permitidos:
-                return jsonify({
-                    "erro": f"O campo '{campo}' não pode ser editado."
-                }), 400
+        for campo in campos_vazio:
+            for campo in dados:
+                if dados[campo] is None or str(dados[campo]).strip() == "":
+                    return jsonify({
+                        "erro": f"O campo '{campo}' não pode ser editado."
+                    }), 400
 
         #SE O CPF ENVIADO, VERIFICA DUPLICIDADE
         if "cpf" in dados:
 
-            if dados["cpf"] is None or dados ["cpf"] == "":
+            if dados["cpf"] is None or str(dados["cpf"]).strip() == "":
                 return jsonify({
                     "erro": "O campo 'cpf' não pode estar vazio."
                 }), 400

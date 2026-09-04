@@ -13,23 +13,44 @@ usuario_bp = Blueprint("usuarios", __name__)
 @jwt_required()
 @roles_required("admin")
 def consultar_usuario():
+    conexao = None
+    try:
+        conexao = connect()
+        cursor = conexao.cursor()
 
-    conexao = connect()
-    cursor = conexao.cursor()
+        cursor.execute("""
+            SELECT
+                u.id,
+                u.nome,
+                u.email,
+                u.role,
 
-    cursor.execute("SELECT * FROM usuarios")
+                CASE 
+                    WHEN u.role = 'paciente' THEN p.status
+                    WHEN u.role = 'cuidador' THEN c.status
+                    WHEN u.role = 'admin' THEN 'ativo'
+                    ELSE NULL
+                END AS status
 
-    usuarios = cursor.fetchall()
+            FROM usuarios u
 
-    lista_usuarios = []
+            LEFT JOIN pacientes p
+                ON p.id = u.id
+            
+            LEFT JOIN cuidadores c
+                ON  c.id = u.id
+        """)
 
-    for usuario in usuarios:
-        dados = dict(usuario)
-        dados.pop("senha", None)
-        lista_usuarios.append(dados)
-    conexao.close()
+        usuarios = cursor.fetchall()
 
-    return jsonify(lista_usuarios), 200
+        lista_usuarios = [dict(usuario) for usuario in usuarios]
+
+        return jsonify(lista_usuarios), 200
+
+    finally: 
+        if conexao:
+            conexao.close()
+
 
 # CONSULTAR USUARIO POR (ID)
 @usuario_bp.route('/usuarios/consultar/<int:id>', methods=['GET'])
@@ -308,19 +329,27 @@ def criar_usuario():
         "nome",
         "email",
         "senha",
-        "role",
-        "cpf",
-        "data_nascimento",
-        "tel",
-        "endereco"
+        "role"
     ]
+
+    if novo_usuario["role"] in ["paciente", "cuidador"]:
+        campos_obrigatorios += [
+            "cpf",
+            "data_nascimento",
+            "tel",
+            "endereco"
+        ]
 
     #VERIFICA OS CAMPOS OBRIGATORIOS PARA VER SE NAO ESTA VAZIO
     for campo in campos_obrigatorios:
-        if campo not in novo_usuario or not novo_usuario[campo]:
-            return jsonify({
-                "erro": f"o campo '{campo}' é obrigatório."
-            }), 400
+        if (
+                campo not in novo_usuario 
+                or novo_usuario[campo] is None
+                or str(novo_usuario[campo]).strip() ==""
+            ):
+                return jsonify({
+                    "erro": f"o campo '{campo}' é obrigatório."
+                }), 400
 
     role = novo_usuario["role"].lower()
 

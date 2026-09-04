@@ -11,104 +11,8 @@ from utils import (
 
 cuidadores_bp = Blueprint("cuidadores", __name__)
 
-# CRIAR CUIDADOR
-@cuidadores_bp.route("/cuidadores/criar", methods=['POST'])
-@jwt_required()
-@roles_required("admin")
-def criar_cuidador():
-
-    conexao = None
-
-    try:
-        dados = request.get_json()
-
-        if not dados:
-            return jsonify({
-                'erro': 'Dados não encontrado.'
-            }), 400
-
-        campos_obrigatorios = [
-            "id",
-            "cpf",
-            "data_nascimento",
-            "tel",
-            "endereco"
-        ]
-
-        for campo in campos_obrigatorios:
-            if campo not in dados or dados[campo] is None or dados[campo] == "":
-                return jsonify({
-                    "erro": f"O campo '{campo}' é obrigatório."
-                }), 400
-            
-        conexao = connect()
-        cursor = conexao.cursor()
-
-        #VERIFICA SE O ID PERTENCE A UM CUIDADOR
-        cuidador, erro, role_nome = buscar_role(cursor, dados["id"], "cuidador")
-
-        if erro:
-            return erro_role(erro, role_nome, cuidador)
-
-        #VERIFICA SE JA POSSUI CADASTRO
-        cuidador_cadastrado = cuidador_status(cursor, dados["id"])
-
-        if cuidador_cadastrado:
-            return jsonify({
-                "erro": "Este cuidador já possui cadastro."
-            }), 409
-
-        #CRIA O CUIDADOR
-        cursor.execute("""
-            INSERT INTO cuidadores
-            (
-                id,
-                cpf,
-                data_nascimento,
-                tel,
-                endereco,
-                obs,
-                status
-            )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """,(
-            dados["id"],
-            dados["cpf"],
-            dados["data_nascimento"],
-            dados["tel"],
-            dados["endereco"],
-            dados.get("obs"),
-            "ativo"
-        ))
-
-        conexao.commit()
-
-        return jsonify({
-            'msg': 'Cuidador cadastrado com sucesso.',
-            "cuidador_id": dados["id"]
-        }), 201
-
-    except sqlite3.IntegrityError:
-        if conexao:
-            conexao.rollback()
-
-        return jsonify({
-            'erro': 'CPF já cadastrado.'
-        }), 400
-    except Exception as e:
-        if conexao:
-            conexao.rollback()
-
-        return jsonify({
-            "erro": str(e)
-        }), 500
-    
-    finally:
-        if conexao:
-            conexao.close()
-
 #CONSULTAR TODOS OS CUIDADORES
-@cuidadores_bp.route("/cuidadores", methods=['GET'])
+@cuidadores_bp.route("/cuidadores/consultar", methods=['GET'])
 @jwt_required()
 @roles_required("admin")
 def mostrar_cuidadores():
@@ -130,7 +34,7 @@ def mostrar_cuidadores():
             conexao.close()
 
 #CONSULTANDO CUIDADORES POR ID
-@cuidadores_bp.route("/cuidadores/<int:id>", methods=['GET'])
+@cuidadores_bp.route("/cuidadores/consultar/<int:id>", methods=['GET'])
 @jwt_required()
 @roles_required("admin")
 def consultar_cuidador_id(id):
