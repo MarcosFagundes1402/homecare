@@ -340,7 +340,7 @@ def meus_cuidadores():
             conexao.close()
 
 # REMOVE O VINCULO ENTRE CUIDADOR E PACIENTE
-@cuidadores_pacientes_bp.route("/cuidadores_pacientes/deletar-vinculo", methods=["DELETE"])
+@cuidadores_pacientes_bp.route("/cuidadores_pacientes/desativar-vinculo", methods=["DELETE"])
 @jwt_required()
 @roles_required("admin")
 def remover_vinculo():

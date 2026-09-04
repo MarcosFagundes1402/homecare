@@ -427,10 +427,10 @@ def editar_medicamento(id):
             conexao.close()
 
 #EXCLUIR UM MEDICAMENTO
-@medicamentos_bp.route("/medicamentos/<int:id>", methods=['DELETE'])
+@medicamentos_bp.route("/medicamentos/desativar/<int:id>", methods=['DELETE'])
 @jwt_required()
 @roles_required("admin")
-def excluir_medicamento(id):
+def desativar_medicamento(id):
     conexao = None
 
     try:

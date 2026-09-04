@@ -466,7 +466,7 @@ def historico_meus_pacientes():
             conexao.close()
 
 #EDITAR ADMINISTRACAO DE MEDICAMENTOS
-@administracao_medicamentos_bp.route("/administracao_medicamentos/<int:id>", methods=['PATCH'])
+@administracao_medicamentos_bp.route("/administracao_medicamentos/editar/<int:id>", methods=['PATCH'])
 @jwt_required()
 @roles_required("admin", "cuidador")
 def editar_administracoes(id):
@@ -589,11 +589,11 @@ def editar_administracoes(id):
         if conexao:
             conexao.close()
 
-#EXCLUIR REGISTRO DE ADMINISTRACAO
-@administracao_medicamentos_bp.route("/administracao_medicamentos/deletar/<int:id>", methods=['DELETE'])
+#DESATIVAR REGISTRO DE ADMINISTRACAO
+@administracao_medicamentos_bp.route("/administracao_medicamentos/desativar/<int:id>", methods=['DELETE'])
 @jwt_required()
 @roles_required("admin", "cuidador")
-def excluir_administracao(id):
+def desativar_administracao(id):
     conexao = None
 
     try:

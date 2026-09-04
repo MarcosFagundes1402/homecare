@@ -305,11 +305,11 @@ def editar_paciente(id):
         if conexao:
             conexao.close()
 
-# EXCLUIR PACIENTE 
+# DESATIVAR PACIENTE 
 @pacientes_bp.route('/pacientes/desativar/<int:id>', methods=['DELETE'])
 @jwt_required()
 @roles_required("admin")
-def excluir_paciente(id):
+def desativar_paciente(id):
 
     conexao = None
 

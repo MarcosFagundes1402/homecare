@@ -194,11 +194,11 @@ def atualizar_usuario_parcial(id):
     finally:
         conexao.close()
 
-# EXCLUIR USUARIO
-@usuario_bp.route('/usuarios/deletar/<int:id>', methods=['DELETE'])
+#DESATIVAR USUARIO
+@usuario_bp.route('/usuarios/desativar/<int:id>', methods=['DELETE'])
 @jwt_required()
 @roles_required("admin")
-def excluir_usuario(id):
+def desativar_usuario(id):
 
     conexao = connect()
     cursor = conexao.cursor()

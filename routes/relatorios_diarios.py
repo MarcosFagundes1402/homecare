@@ -438,11 +438,11 @@ def editar_relatorios(id):
         if conexao:
             conexao.close()
 
-#EXCLUIR RELATORIOS DIARIO
-@relatorios_diarios_bp.route("/relatorios_diarios/deletar/<int:id>", methods=['DELETE'])
+#DESATIVAR RELATORIOS DIARIO
+@relatorios_diarios_bp.route("/relatorios_diarios/desativar/<int:id>", methods=['DELETE'])
 @jwt_required()
 @roles_required("admin")
-def excluir_relatorios(id):
+def desativar_relatorios(id):
     conexao = None
 
     try:
