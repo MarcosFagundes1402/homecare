@@ -126,7 +126,7 @@ def criar_vinculo():
 
 
 # MOSTRA OS PACIENTES QUE O CUIDADOR TEM
-@cuidadores_pacientes_bp.route("/cuidadores_pacientes/cuidador/<int:id>", methods=["GET"])
+@cuidadores_pacientes_bp.route("/cuidadores_pacientes/consultar-cuidador/<int:id>", methods=["GET"])
 @jwt_required()
 @roles_required("admin")
 def listar_pacientes_cuidador(id):
@@ -182,7 +182,7 @@ def listar_pacientes_cuidador(id):
             conexao.close()
 
 # MOSTRA QUAIS CUIDADORES CUIDAM DO PACIENTE
-@cuidadores_pacientes_bp.route("/cuidadores_pacientes/paciente/<int:id>", methods=["GET"])
+@cuidadores_pacientes_bp.route("/cuidadores_pacientes/consultar-paciente/<int:id>", methods=["GET"])
 @jwt_required()
 @roles_required("admin")
 def listar_cuidadores_paciente(id):

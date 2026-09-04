@@ -33,7 +33,7 @@ def criar_medicamentos():
                 ]
         
         for campo in campos_obrigatorios:
-            if campo not in dados or dados[campo] is None or dados[campo] == "":
+            if campo not in dados or dados[campo] is None or str(dados[campo]).strip() == "":
                 return jsonify({
                     "erro": f"O campo '{campo}' é obrigatório."
                 }), 400
@@ -59,6 +59,30 @@ def criar_medicamentos():
             return jsonify({
                 "erro": "Não é possível cadastrar medicamento para paciente inativo."
             }), 400
+        
+        #VERIFICA SE O MEDICAMENTO JÁ ESTÁ CADASTRADO
+        cursor.execute("""
+            SELECT id, dosagem 
+            FROM medicamentos
+            WHERE paciente_id = ? 
+            AND nome = ?
+            AND horario = ?
+            AND status = 'ativo'
+        """, (
+            dados["paciente_id"],
+            dados["nome"],
+            dados["horario"]
+        ))
+
+        medicamento_existente = cursor.fetchone()
+
+        if medicamento_existente:
+            return jsonify({
+                "erro": "Já existe medicamento cadastrado neste horário.",
+                "medicamento_id": medicamento_existente["id"],
+                "dosagem_atual": medicamento_existente["dosagem"],
+                "sugestao": "Edite o medicamento existente caso queira alterar a dosagem."
+            }), 409
         
         #CRIA O MEDICAMENTO
         cursor.execute("""
@@ -115,7 +139,7 @@ def criar_medicamentos():
             conexao.close()
 
 # ADMIN CONSULTAR MEDICAMENTOS DE UM PACIENTE
-@medicamentos_bp.route("/medicamentos/consultar/<int:id>", methods=['GET'])
+@medicamentos_bp.route("/medicamentos/consultar-paciente/<int:id>", methods=['GET'])
 @jwt_required()
 @roles_required("admin")
 def listar_medicamentos_paciente(id):
@@ -427,7 +451,7 @@ def editar_medicamento(id):
             conexao.close()
 
 #EXCLUIR UM MEDICAMENTO
-@medicamentos_bp.route("/medicamentos/desativar/<int:id>", methods=['DELETE'])
+@medicamentos_bp.route("/medicamentos/excluir/<int:id>", methods=['DELETE'])
 @jwt_required()
 @roles_required("admin")
 def desativar_medicamento(id):

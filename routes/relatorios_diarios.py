@@ -26,12 +26,23 @@ def criar_relatorio():
                 "erro": "Dados não encontrados."                
             }), 400
 
-        #CAMPOS OBRIGATORIOS
-        if "paciente_id" not in dados:
-            return jsonify({
-                "erro": "paciente_id é obrigatório."
-            }), 400
+        # CAMPOS OBRIGATÓRIOS
+        campos_obrigatorios = [
+            "paciente_id",
+            "higiene",
+            "observacoes"
+        ]
 
+        for campo in campos_obrigatorios:
+            if (
+                campo not in dados
+                or dados[campo] is None
+                or str(dados[campo]).strip() == ""
+            ) :
+                return jsonify({
+                    "erro": f"O campo '{campo}' é obrigatório."
+                }), 400
+            
         usuario_id = int(get_jwt_identity())
 
         conexao = connect()
@@ -81,9 +92,9 @@ def criar_relatorio():
             usuario_id,
             dados.get("alimentacao"),
             dados.get("higiene"),
-            dados.get("pressao_arterial"),
-            dados.get("glicemia"),
-            dados.get("temperatura"),
+            str(dados.get("pressao_arterial", "")).strip() or "não aferido",
+            str(dados.get("glicemia", "")).strip() or "não aferido",
+            str(dados.get("temperatura", "")).strip() or "não aferido",
             dados.get("observacoes"),
             data_horario
         ))
@@ -99,9 +110,9 @@ def criar_relatorio():
                 "responsavel_id": usuario_id,
                 "alimentacao": dados.get("alimentacao"),
                 "higiene": dados.get("higiene"),
-                "pressao_arterial": dados.get("pressao_arterial"),
-                "glicemia": dados.get("glicemia"),
-                "temperatura": dados.get("temperatura"),
+                "pressao_arterial": str(dados.get("pressao_arterial", "")).strip() or "não aferido",
+                "glicemia": str(dados.get("glicemia", "")).strip() or "não aferido",
+                "temperatura": str(dados.get("temperatura", "")).strip() or "não aferido",
                 "observacoes": dados.get("observacoes"),
                 "data_horario": data_horario
             }

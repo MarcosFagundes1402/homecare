@@ -29,19 +29,22 @@ def registrar_administracao():
             }), 400
 
         #CAMPOS OBRIGATÓRIOS 
-        if(
-            "medicamento_id" not in dados
-            or "paciente_id" not in dados
-            or "status" not in dados
-            or "dosagem_administrada" not in dados
-        ):
-            return jsonify({
-                "erro": (
-                    "medicamento_id, paciente_id, status "
-                    "e dosagem_administrada são obrigatórios."
-                    )
-            }), 400
+        campos_obrigatorios = [
+            "medicamento_id",
+            "paciente_id",
+            "dosagem_administrada"
+        ]
 
+        for campo in campos_obrigatorios:
+            if (
+                campo not in dados
+                or dados[campo] is None
+                or str(dados[campo]).strip() == ""
+            ):
+                return jsonify({
+                    "erro": f"O campo '{campo}' é obrigatório."
+                }), 400
+            
         #PEGA O ID DO USUÁRIO LOGADO
         usuario_id = int(get_jwt_identity())
 
@@ -633,7 +636,7 @@ def desativar_administracao(id):
              }), 404
 
         #VERIFICA SE JA ESTA DESATIVADA
-        if administracao["status"] == "desativada":
+        if administracao["status"] == "inativo":
             return jsonify({
                 "erro": "Esta administração já está desativada."
                 }), 400
@@ -648,7 +651,7 @@ def desativar_administracao(id):
         #DESATIVA A ADMINISTRACAO
         cursor.execute("""
             UPDATE administracao_medicamentos
-            SET status = 'desativada'
+            SET status = 'inativo'
             WHERE id = ?
         """, (id,))
 
