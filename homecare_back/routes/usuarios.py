@@ -1,0 +1,605 @@
+from flask import jsonify, request, Blueprint
+from database.connect import connect
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from utils.permissoes import roles_required
+from werkzeug.security import generate_password_hash, check_password_hash
+
+import sqlite3
+
+usuario_bp = Blueprint("usuarios", __name__)
+
+# CONSULTAR USUARIO (TODOS)
+@usuario_bp.route('/usuarios/consultar', methods=['GET'])
+@jwt_required()
+@roles_required("admin")
+def consultar_usuario():
+    conexao = None
+    try:
+        conexao = connect()
+        cursor = conexao.cursor()
+
+        cursor.execute("""
+            SELECT
+                u.id,
+                u.nome,
+                u.email,
+                u.role,
+
+                CASE 
+                    WHEN u.role = 'paciente' THEN p.status
+                    WHEN u.role = 'cuidador' THEN c.status
+                    WHEN u.role = 'admin' THEN 'ativo'
+                    ELSE NULL
+                END AS status
+
+            FROM usuarios u
+
+            LEFT JOIN pacientes p
+                ON p.id = u.id
+            
+            LEFT JOIN cuidadores c
+                ON  c.id = u.id
+        """)
+
+        usuarios = cursor.fetchall()
+
+        lista_usuarios = [dict(usuario) for usuario in usuarios]
+
+        return jsonify(lista_usuarios), 200
+
+    finally: 
+        if conexao:
+            conexao.close()
+
+
+# CONSULTAR USUARIO POR (ID)
+@usuario_bp.route('/usuarios/consultar/<int:id>', methods=['GET'])
+@jwt_required()
+@roles_required("admin")
+def consultar_usuario_id(id):
+
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    cursor.execute(""" SELECT * FROM usuarios WHERE id= ?""", (id,))
+
+    usuario = cursor.fetchone()
+    conexao.close()
+
+    if usuario:
+        dados = dict(usuario)
+        dados.pop("senha")
+
+        return jsonify(dados), 200
+
+    return jsonify({
+        "erro": "Usuário não encontrado"
+    }), 404
+
+#REMOVI O PUT POIS ACHEI DESNECESSARIO TER QUE EDITAR TUDO É MAIS FACIL EDITAR ALGUMAS COISAS
+
+# EDITAR USUARIO PARCIAL (ID)
+@usuario_bp.route("/usuarios/editar/<int:id>", methods=['PATCH'])
+@jwt_required()
+@roles_required("admin")
+def atualizar_usuario_parcial(id):
+
+    dados = request.get_json()
+
+    if not dados:
+        return jsonify({
+            "erro": "Dados não enviados"
+         }), 400
+
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    try:
+        #BUSCA O USUÁRIO E A ROLE NO BANCO DE DADOS
+        cursor.execute("""
+            SELECT role
+            FROM usuarios
+            WHERE id = ?
+        """, (id,))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+            return jsonify({
+                "erro": "Usuário não encontrado."
+            }), 404
+
+        role = usuario["role"].lower()
+
+        # CAMPOS QUE PODEM SER ALTERADOS
+        campos_permitidos = ["nome", "email", "senha"]
+
+        campos = []
+        valores = []
+
+        for campo, valor in dados.items():
+            if campo not in campos_permitidos:
+                return jsonify({
+                    "erro": f"Campo '{campo.upper()}' não pode ser alterado."
+                }), 400
+
+            if valor is None or valor == "":
+                return jsonify({
+                    "erro": f"O campo '{campo}' não pode estar vazio."
+                }), 400
+            
+            if campo == "senha":
+                valor = generate_password_hash(valor)
+
+            campos.append(f"{campo} = ?")
+            valores.append(valor)
+
+        #VERIFICA DUPLICIDADE NO EMAIL ALTERADO
+        if "email" in dados:
+            cursor.execute("""
+                SELECT id
+                FROM usuarios
+                WHERE email =?
+                AND id !=?
+            """, (
+                dados["email"],
+                id
+            ))
+
+            email_existente = cursor.fetchone()
+
+            if email_existente:
+                return jsonify({
+                    "erro": "Email já utilizado por outro usuário."
+                }), 400
+
+        valores.append(id)
+
+        sql = f"""
+            UPDATE usuarios 
+            SET {', '.join(campos)}
+            WHERE id=?
+        """
+        cursor.execute(sql, valores)
+
+        #SINCRONIZA O NOME NA TABELA 
+        if "nome" in dados:
+            if role == "paciente":
+                cursor.execute("""
+                    UPDATE pacientes
+                    SET nome =?
+                    WHERE id =?
+                """, (
+                    dados["nome"],
+                    id
+                ))
+
+            elif role == "cuidador":
+                cursor.execute("""
+                    UPDATE cuidadores
+                    SET nome =?
+                    WHERE id =? 
+                """, (
+                    dados["nome"], 
+                    id
+                ))
+
+        conexao.commit()
+
+        dados_retorno = {
+            campo: valor
+            for campo, valor in dados.items()
+            if campo != "senha"
+        }
+
+        return jsonify ({
+            "msg": "Usuário atualizado com sucesso.",
+            "usuario": id,
+            "dados_alterados": dados_retorno
+        }), 200
+
+    except sqlite3.IntegrityError as e:
+        conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 400
+
+    except Exception as e:
+        conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+    finally:
+        conexao.close()
+
+#DESATIVAR USUARIO
+@usuario_bp.route('/usuarios/desativar/<int:id>', methods=['DELETE'])
+@jwt_required()
+@roles_required("admin")
+def desativar_usuario(id):
+
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    try:
+        #BUSCA O USUARIO E A ROLE E STATUS
+        cursor.execute("""
+            SELECT 
+                u.role,
+                p.status AS paciente_status,
+                c.status AS cuidador_status 
+            FROM usuarios u
+
+            LEFT JOIN pacientes p 
+                ON p.id = u.id
+
+            LEFT JOIN cuidadores c  
+                ON c.id = u.id
+            WHERE u.id =?
+        """, (id,))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+             return jsonify({
+                 "erro": "Usuário não encontrado."
+             }), 404
+        
+        role = usuario["role"].lower()
+
+        #PEGA STATUS DEACORDO COM A ROLE
+        if role == "paciente":
+            status = usuario["paciente_status"]
+
+        elif role == "cuidador":
+            status = usuario["cuidador_status"]
+
+        #SE FOR ADMIN NAO DESATIVA
+        else:
+            return jsonify({
+                "erro": "Este tipo de usuário não pode ser desativado por esta rota."
+            }), 400
+        
+        #VERIFICA SE JA ESTA INATIVO
+        if status == "inativo":
+            return jsonify({
+                "erro": "Usuário já está inativo."
+            }), 400
+
+        #DESATIVAR PACIENTE
+        if role == "paciente":
+            cursor.execute("""
+                UPDATE pacientes
+                SET status = "inativo"
+                WHERE id = ?
+            """, (id,))
+
+        #DESATIVAR CUIDADOR
+        elif role == "cuidador":
+            cursor.execute("""
+                UPDATE cuidadores
+                SET status = "inativo"
+                WHERE id = ?
+            """, (id,))
+
+        
+        conexao.commit()
+
+        return jsonify({
+            "msg": "Usuário desativado com sucesso.",
+            "usuario_id": id,
+            "role": role,
+            "status": "inativo"
+        }), 200
+
+    except sqlite3.IntegrityError as e:
+        conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 400
+
+    except Exception as e:
+        conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+    finally:
+        conexao.close()
+
+# CRIAR USUARIO
+@usuario_bp.route('/usuarios/criar', methods=['POST'])
+@jwt_required()
+@roles_required("admin")
+def criar_usuario():
+
+    novo_usuario = request.get_json()
+
+    if not novo_usuario:
+        return jsonify({
+            "erro": "Dados não enviados"
+        }), 400
+
+    campos_obrigatorios = [
+        "nome",
+        "email",
+        "senha",
+        "role"
+    ]
+
+    if novo_usuario["role"] in ["paciente", "cuidador"]:
+        campos_obrigatorios += [
+            "cpf",
+            "data_nascimento",
+            "tel",
+            "endereco"
+        ]
+
+    #VERIFICA OS CAMPOS OBRIGATORIOS PARA VER SE NAO ESTA VAZIO
+    for campo in campos_obrigatorios:
+        if (
+                campo not in novo_usuario 
+                or novo_usuario[campo] is None
+                or str(novo_usuario[campo]).strip() ==""
+            ):
+                return jsonify({
+                    "erro": f"o campo '{campo}' é obrigatório."
+                }), 400
+
+    role = novo_usuario["role"].lower()
+
+    roles_permitidas = ["paciente", "cuidador"]
+
+    if role not in roles_permitidas:
+        return jsonify({
+            "erro": "Role inválid. Ultilize paciente ou cuidador."
+        }), 400
+
+
+    conexao = None
+
+    try:
+        conexao = connect()
+        cursor = conexao.cursor()
+
+        senha_hash = generate_password_hash(novo_usuario["senha"])
+
+        # CRIA USUARIO PRINCIPAL
+        cursor.execute("""
+            INSERT INTO usuarios (
+                nome, 
+                email, 
+                role, 
+                senha
+            )
+            VALUES (?, ?, ?, ?)
+        """, (
+            novo_usuario["nome"],
+            novo_usuario["email"],
+            role,
+            senha_hash
+        ))
+
+        usuario_id = cursor.lastrowid
+
+        # SE FOR PACIENTEM CRIA O PERFIL DE PACIENTE
+        if role == "paciente":
+            cursor.execute("""
+                INSERT INTO pacientes (
+                    id,
+                    nome,
+                    cpf,
+                    data_nascimento,
+                    tel,
+                    endereco,
+                    obs
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                usuario_id,
+                novo_usuario["nome"],
+                novo_usuario['cpf'],
+                novo_usuario['data_nascimento'],
+                novo_usuario['tel'],
+                novo_usuario['endereco'],
+                novo_usuario.get('obs'),
+            ))
+
+        elif role == 'cuidador':
+            cursor.execute("""
+                INSERT INTO cuidadores (
+                        id,
+                        nome,
+                        cpf,
+                        data_nascimento,
+                        tel,
+                        endereco,
+                        obs,
+                        status
+                    )
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                usuario_id,
+                novo_usuario['nome'],
+                novo_usuario['cpf'],
+                novo_usuario['data_nascimento'],
+                novo_usuario['tel'],
+                novo_usuario['endereco'],
+                novo_usuario.get('obs'),
+                "ativo"
+            ))
+
+        conexao.commit()
+
+        return jsonify({
+            'msg': f'{role.capitalize()} inserido com sucesso.',
+            'id': usuario_id
+        }), 201
+
+    except sqlite3.IntegrityError as e:
+        if conexao:
+            conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 400
+
+    except Exception as e:
+        if conexao: 
+            conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+    finally:
+        if conexao:
+            conexao.close()
+#ROTA ESQUECI SENHA
+@usuario_bp.route("/usuarios/esqueci-senha", methods=['POST'])
+def forgot_password():
+    dados = request.get_json()
+
+    if not dados or not dados.get("email", "").strip():
+        return jsonify({
+            "erro": "E-mail é obrigatório"
+        }), 400
+
+    email = dados["email"].strip()
+
+    conexao = connect()
+    cursor = conexao.cursor()
+
+    cursor.execute("""
+        SELECT id, email
+        FROM usuarios 
+        WHERE email = ?
+    """, (email,))
+
+    usuario = cursor.fetchone()
+
+    conexao.close()
+
+    conexao.close()
+
+    if not usuario:
+        return jsonify({
+            "erro": "E-mail não encontrado"
+        }), 404
+
+    return jsonify({
+        "msg": "E-mail encontrado"
+    }), 200
+
+#ALTERAR SENHA
+@usuario_bp.route("/usuarios/alterar-senha", methods=['PATCH'])
+@jwt_required()
+def alterar_senha():
+    conexao = None
+
+    try:
+        dados = request.get_json()
+
+        if not dados:
+            return jsonify({
+                "erro": "Dados não encontrados."
+            }), 400
+
+        campos_obrigatorios = [
+            "senha_atual",
+            "nova_senha",
+            "confirmar_senha"
+        ]
+
+
+        for campo in campos_obrigatorios:
+            if (
+                campo not in dados
+                or dados[campo] is None
+                or str(dados[campo]).strip() == ""
+            ):
+                return jsonify({
+                    "erro": f"O campo '{campo}' é obrigatório."
+                }), 400
+
+        #VEWRIFICA SE AS SENHAS SÃO IGUAIS
+        if dados["nova_senha"] != dados["confirmar_senha"]:
+            return jsonify({
+                "erro": "As senhas não iguais."
+            }), 400
+        
+        usuario_id = int(get_jwt_identity())
+
+        conexao = connect()
+        cursor = conexao.cursor()
+
+        #BUSCAR USUARIO E A SENHA ATUAL
+        cursor.execute("""
+            SELECT
+                id,
+                nome,
+                senha
+            FROM usuarios
+            WHERE id = ?
+        """, (usuario_id,))
+
+        usuario = cursor.fetchone()
+
+        if not usuario:
+                return jsonify({
+                    "erro": "Usuário não encontrado."
+                }), 404
+
+        #CONFERE SENHA ATUAL
+        if not check_password_hash(
+            usuario["senha"],
+            dados["senha_atual"]
+        ):
+            return jsonify({
+                "erro": "Senha atual incorreta."
+            }), 401
+
+        #EVITAR DUPLICIDADE DE SENHA
+        if check_password_hash (
+            usuario["senha"],
+            dados["nova_senha"]
+        ):
+            return jsonify({
+                "erro": "A nova senha não pode ser igual à senha atual."
+            }), 400
+
+        #GERA O HASH DA NOVA SENHA
+        nova_senha_hash = generate_password_hash(dados["nova_senha"])
+
+        #ATUALIZA A SENHA
+        cursor.execute("""
+            UPDATE usuarios
+            SET senha = ?
+            WHERE id = ?
+        """, (
+            nova_senha_hash,
+            usuario_id
+        ))
+
+        conexao.commit()
+
+        return jsonify({
+            "msg": "Senha alterada com sucesso."
+        }), 200
+
+    except Exception as e:
+        if conexao:
+            conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+    finally:
+        if conexao:
+            conexao.close()
