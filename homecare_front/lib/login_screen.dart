@@ -1,9 +1,9 @@
 import 'dart:convert';
 
-import 'package:app/ForgotPasswordScreen.dart';
+import 'package:app/forgot_password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:app/HomeScreen.dart';
+import 'package:app/home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -33,9 +33,6 @@ class _LoginScreenState extends State<LoginScreen> {
         body: jsonEncode({'email': email, 'senha': senha}),
       );
 
-      print('STATUS: ${response.statusCode}');
-      print('BODY: ${response.body}');
-
       if (!mounted) return;
 
       final dados = jsonDecode(response.body);
@@ -47,6 +44,7 @@ class _LoginScreenState extends State<LoginScreen> {
             builder: (context) => HomeScreen(
               nome: dados['usuario']['nome'],
               role: dados['usuario']['role'],
+              token: dados['token'],
             ),
           ),
         );
