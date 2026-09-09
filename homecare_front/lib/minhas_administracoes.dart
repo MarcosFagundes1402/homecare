@@ -6,11 +6,13 @@ import 'package:http/http.dart' as http;
 class MinhasAdministracoes extends StatefulWidget {
   final String nome;
   final String token;
+  final int? pacienteId;
 
   const MinhasAdministracoes({
     super.key,
     required this.nome,
     required this.token,
+    this.pacienteId,
   });
 
   @override
