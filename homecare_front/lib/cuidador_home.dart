@@ -46,8 +46,7 @@ class _CuidadorHomeState extends State<CuidadorHome> {
           pacientes = dados;
         });
       }
-      debugPrint('STATUS PACIENTE: ${response.statusCode}');
-      debugPrint('BODY PACIENTE: ${response.body}');
+
     } catch (erro) {
       debugPrint('ERRO: $erro');
     }

@@ -53,8 +53,7 @@ class _MinhasAdministracoesState extends State<MinhasAdministracoes> {
           carregando = false;
         });
       }
-
-      debugPrint('Body: ${response.body}');
+      
     } catch (erro) {
       debugPrint('ERRO RELATORIOS: $erro');
     }

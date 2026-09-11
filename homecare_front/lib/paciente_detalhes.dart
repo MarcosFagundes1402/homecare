@@ -1,5 +1,5 @@
 import 'package:app/historico_relatorios.dart';
-import 'package:app/minhas_administracoes.dart';
+import 'package:app/cuidador_administracoes.dart';
 import 'package:flutter/material.dart';
 
 class PacienteDetalhes extends StatelessWidget {
@@ -51,6 +51,7 @@ class PacienteDetalhes extends StatelessWidget {
                 context,
                 MaterialPageRoute(
                   builder: (context) => HistoricoRelatorios(
+                    pacienteNome: paciente['nome'],
                     pacienteId: paciente['id'],
                     token: token,
                   ),
@@ -59,10 +60,19 @@ class PacienteDetalhes extends StatelessWidget {
             },
             child: const Text('Ver histórico de relatórios'),
           ),
+
           const SizedBox(height: 10),
+
           ElevatedButton(
             onPressed: () {
-              // ir para ver administracoes
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => CuidadorAdministracoes(
+                  pacienteNome: paciente['nome'],
+                  pacienteId: paciente['id'],
+                  token: token,
+                ))
+              );
             },
             child: const Text('Ver histórico de administrações'),
           ),

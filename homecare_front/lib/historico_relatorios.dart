@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
 class HistoricoRelatorios extends StatefulWidget {
+  final String pacienteNome;
   final int pacienteId;
   final String token;
 
   const HistoricoRelatorios({
     super.key,
     required this.pacienteId,
+    required this.pacienteNome,
     required this.token,
   });
 
@@ -67,10 +69,8 @@ class _HistoricoRelatoriosState extends State<HistoricoRelatorios> {
 
   @override
   Widget build(BuildContext context) {
-    //final pacientesVisiveis = pacientes.take(4).toList();
-
     return Scaffold(
-      appBar: AppBar(title: const Text('Historico de relatórios')),
+      appBar: AppBar(title: Text('Relatórios de: ${widget.pacienteNome}')),
 
       body: relatorios.isEmpty
           ? Center(child: Text(msg))
@@ -81,23 +81,34 @@ class _HistoricoRelatoriosState extends State<HistoricoRelatorios> {
                 final relatorio = relatorios[index];
 
                 return Card(
-                  child: ListTile(
-                    title: Text(
-                      'Relatório: ${relatorio['data_horario']}',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                  child: ExpansionTile(
+                  title: Text(
+                    'Relatório criado em: ${relatorio['data_horario']}',
+                  ),
+
+                  subtitle: Text(
+                    'por: ${relatorio['responsavel']['nome']}',
+                  ),
+
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text('Alimentação: ${relatorio['alimentacao']}'),
+                          Text('Glicemia: ${relatorio['glicemia']}'),
+                          Text('Higiene: ${relatorio['higiene']}'),
+                          Text(
+                            'Pressão Arterial: ${relatorio['pressao_arterial']}',
+                          ),
+                          Text('Temperatura: ${relatorio['temperatura']}'),
+                          Text('Observações: ${relatorio['observacoes']}'),
+                        ],
                       ),
                     ),
-                    subtitle: Text(
-                      'Higiene: ${relatorio['higiene']}'
-                      '\nAlimentação: ${relatorio['higiene']}'
-                      '\nObservações: ${relatorio['observacoes']}'
-                      '\nGlicemia: ${relatorio['glicemia']}'
-                      '\nTemperatura: ${relatorio['temperatura']}'
-                      '\nPressão Arterial: ${relatorio['pressao_arterial']}'
-                    ),
-                  ),
+                  ],
+                ),
                 );
               },
             ),
