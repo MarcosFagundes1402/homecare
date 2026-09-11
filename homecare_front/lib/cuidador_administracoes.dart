@@ -60,8 +60,6 @@ class _CuidadorAdministracoesState extends State<CuidadorAdministracoes> {
           });
         }
       }
-      debugPrint('Status: ${response.statusCode}');
-      debugPrint('body: ${response.body}');
     } catch (erro) {
       debugPrint('Status: $erro');
     }
@@ -100,7 +98,7 @@ class _CuidadorAdministracoesState extends State<CuidadorAdministracoes> {
                           children: [
 
                             Text(
-                              'Dosagem: ${administracao['dosagem_previsto']}',
+                              'Dosagem administrada: ${administracao['dosagem_administrada']}',
                             ),
 
                             Text('Status: ${administracao['status']}'),

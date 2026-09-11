@@ -1,6 +1,7 @@
 import 'package:app/cuidador_administracoes.dart';
 import 'package:app/medicamentos_paciente.dart';
 import 'package:flutter/material.dart';
+import 'package:app/registrar_administracao.dart';
 
 class PacienteDetalhes extends StatelessWidget {
   final Map paciente;
@@ -32,6 +33,14 @@ class PacienteDetalhes extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               // depois abre registrar administração
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => RegistrarAdministracao(
+                  pacienteId: paciente['id'], 
+                  pacienteNome: paciente['nome'], 
+                  token: token,
+                  ))
+              );
             },
             child: const Text('Registrar administração'),
           ),

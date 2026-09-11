@@ -91,15 +91,15 @@ class _MedicamentosPacienteState extends State<MedicamentosPaciente> {
                     title: Text(medicamento['nome'] ?? 'Medicamento sem nome'),
                     subtitle: Text(
                       'Dosagem: ${medicamento['dosagem']} '
-                      ' Horario: ${medicamento['horario']}'
+                      ' Horário: ${medicamento['horario']}'
                       ' Status: ${medicamento['status']}',
                     ),
                     children: [
                       Padding(
-                        padding: const EdgeInsetsGeometry.all(16),
+                        padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [Text('Obervações: ${medicamento['obs'] ?? 'Sem observações'}')],
+                          children: [Text('Observações: ${medicamento['obs'] ?? 'Sem observações'}')],
                         ),
                       ),
                     ],
