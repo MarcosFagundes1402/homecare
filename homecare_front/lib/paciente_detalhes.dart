@@ -1,5 +1,5 @@
-import 'package:app/historico_relatorios.dart';
 import 'package:app/cuidador_administracoes.dart';
+import 'package:app/medicamentos_paciente.dart';
 import 'package:flutter/material.dart';
 
 class PacienteDetalhes extends StatelessWidget {
@@ -40,7 +40,16 @@ class PacienteDetalhes extends StatelessWidget {
 
           ElevatedButton(
             onPressed: () {
-              // abrir medicamentos do paciente
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => MedicamentosPaciente(
+                    pacienteNome: paciente['nome'],
+                    pacienteId: paciente['id'],
+                    token: token,
+                  ),
+                ),
+              );
             },
             child: const Text('Ver medicamentos'),
           ),
@@ -50,7 +59,7 @@ class PacienteDetalhes extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => HistoricoRelatorios(
+                  builder: (context) => MedicamentosPaciente(
                     pacienteNome: paciente['nome'],
                     pacienteId: paciente['id'],
                     token: token,
@@ -67,11 +76,13 @@ class PacienteDetalhes extends StatelessWidget {
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => CuidadorAdministracoes(
-                  pacienteNome: paciente['nome'],
-                  pacienteId: paciente['id'],
-                  token: token,
-                ))
+                MaterialPageRoute(
+                  builder: (context) => CuidadorAdministracoes(
+                    pacienteNome: paciente['nome'],
+                    pacienteId: paciente['id'],
+                    token: token,
+                  ),
+                ),
               );
             },
             child: const Text('Ver histórico de administrações'),

@@ -5,7 +5,8 @@ from utils import (
     roles_required,
     buscar_role,
     erro_role,
-    paciente_status
+    paciente_status,
+    vinculo_cp
 )
 
 medicamentos_bp = Blueprint("medicamentos",__name__)
@@ -141,7 +142,7 @@ def criar_medicamentos():
 # ADMIN CONSULTAR MEDICAMENTOS DE UM PACIENTE
 @medicamentos_bp.route("/medicamentos/consultar-paciente/<int:id>", methods=['GET'])
 @jwt_required()
-@roles_required("admin")
+@roles_required("admin", "cuidador")
 def listar_medicamentos_paciente(id):
     conexao = None
 
@@ -149,12 +150,38 @@ def listar_medicamentos_paciente(id):
         conexao = connect()
         cursor = conexao.cursor()
 
+        usuario_logado_id = int(get_jwt_identity())
+
+        cursor.execute("""
+            SELECT role
+            FROM usuarios
+            WHERE id = ? 
+        """, (usuario_logado_id,))
+
+        usuario_logado = cursor.fetchone()
+
+        if not usuario_logado:
+            return jsonify({
+                "msg": "Usuário não encontrado."
+            }), 400
+
+        role_logado = usuario_logado["role"]
+
         # VERIFICA SE O USUÁRIO É PACIENTE
         paciente, erro, role_nome = buscar_role(cursor, id, "paciente")
 
         if erro:
             return erro_role(erro, role_nome, paciente)
-        
+
+        # SE FOR CUIDADOR, PRECISA TER VINCULO COM O PACIENTE
+        if role_logado == "cuidador":
+            vinculo = vinculo_cp(cursor, usuario_logado_id, id)
+
+            if not vinculo:
+                 return jsonify ({
+                     "erro": "Você não possui vinculo com este paciente."
+                 })
+            
         # BUSCA O MEDICAMENTO DO PACIENTE
         cursor.execute("""
             SELECT 
