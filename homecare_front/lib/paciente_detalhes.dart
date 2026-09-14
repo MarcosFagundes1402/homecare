@@ -1,4 +1,6 @@
+import 'package:app/criar_relatorio.dart';
 import 'package:app/cuidador_administracoes.dart';
+import 'package:app/historico_relatorios.dart';
 import 'package:app/medicamentos_paciente.dart';
 import 'package:flutter/material.dart';
 import 'package:app/registrar_administracao.dart';
@@ -32,14 +34,15 @@ class PacienteDetalhes extends StatelessWidget {
 
           ElevatedButton(
             onPressed: () {
-              // depois abre registrar administração
               Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => RegistrarAdministracao(
-                  pacienteId: paciente['id'], 
-                  pacienteNome: paciente['nome'], 
-                  token: token,
-                  ))
+                MaterialPageRoute(
+                  builder: (context) => RegistrarAdministracao(
+                    pacienteId: paciente['id'],
+                    pacienteNome: paciente['nome'],
+                    token: token,
+                  ),
+                ),
               );
             },
             child: const Text('Registrar administração'),
@@ -68,7 +71,7 @@ class PacienteDetalhes extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => MedicamentosPaciente(
+                  builder: (context) => HistoricoRelatorios(
                     pacienteNome: paciente['nome'],
                     pacienteId: paciente['id'],
                     token: token,
@@ -101,7 +104,16 @@ class PacienteDetalhes extends StatelessWidget {
 
           ElevatedButton(
             onPressed: () {
-              // ir para criar tela de cria relatorio
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => CriarRelatorio(
+                    pacienteId: paciente['id'],
+                    pacienteNome: paciente['nome'],
+                    token: token,
+                  ),
+                ),
+              );
             },
             child: const Text('Criar relatório diário'),
           ),
