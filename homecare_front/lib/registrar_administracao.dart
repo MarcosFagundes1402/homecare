@@ -62,8 +62,6 @@ class _RegistrarAdministracaoState extends State<RegistrarAdministracao> {
         });
       }
 
-      debugPrint('Status: ${response.statusCode}');
-      debugPrint('body: ${response.body}');
     } catch (erro) {
       debugPrint('erro: $erro');
     }
@@ -175,8 +173,14 @@ class _RegistrarAdministracaoState extends State<RegistrarAdministracao> {
                     }).toList(),
 
                     onChanged: (valor) {
+                      final medicamento = medicamentos.firstWhere(
+                        (item) => item['id'] == valor,
+                      );
+
                       setState(() {
                         medicamentoSelecionado = valor;
+                        dosagemController.text = 
+                        medicamento['dosagem'].toString();
                       });
                     },
                   ),

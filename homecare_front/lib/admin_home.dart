@@ -1,24 +1,124 @@
+import 'package:app/listar_usuario.dart';
 import 'package:flutter/material.dart';
 
-class AdminHome extends StatelessWidget {
+class AdminHome extends StatefulWidget {
   final String nome;
+  final String token;
 
-  const AdminHome({super.key, required this.nome});
+  const AdminHome({super.key, required this.nome, required this.token});
 
+  @override
+  State<AdminHome> createState() => _AdminHomeState();
+}
+
+class _AdminHomeState extends State<AdminHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Área do Administrador')),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Bem-vindo, $nome',
-              style: const TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+
+      body: ListView(
+        padding: const EdgeInsets.all(50),
+        children: [
+          Center(
+            child: Text(
+              'Bem-vindo, ${widget.nome}',
+              style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w600),
             ),
-          ],
-        ),
+          ),
+
+          // CARD DE USUARIOS
+          const SizedBox(height: 40),
+
+          Card(
+            child: ExpansionTile(
+              title: const Text(
+                'Usuários',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+              ),
+              children: [
+                ListTile(
+                  title: const Text('Listar usuários'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ListarUsuarios(token: widget.token),
+                      )
+                    );
+                  },
+                ),
+
+                ListTile(title: const Text('Criar usuário'), onTap: () {}),
+              ],
+            ),
+          ),
+        
+          // CARD DE VINCULOS
+          Card(
+            child: ExpansionTile(
+              title: const Text(
+                'Vínculos',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+              ),
+              children: [
+                ListTile(title: const Text('Criar vínculo'), onTap: () {}),
+
+                ListTile(title: const Text('Ver vínculos'), onTap: () {}),
+              ],
+            ),
+          ),
+
+          //CARD DE MEDICAMENTOS
+          Card(
+            child: ExpansionTile(
+              title: const Text(
+                'Medicamentos',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+              ),
+
+              children: [
+                ListTile(title: const Text('Consultar todos os medicamentos'), onTap: () {},),
+
+                ListTile(title: const Text('Consultar por paciente'), onTap: () {},),
+
+                ListTile(title: const Text('Criar medicamento'), onTap: () {}),
+              ],
+            ),
+          ),
+
+          //CARD ADMINISTRACOES
+          Card(
+            child: ExpansionTile(
+              title: const Text(
+                'Administrações',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+              ),
+              children: [
+                ListTile(
+                  title: const Text('Consultar histórico'),
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+
+          //CARD RELATORIOS
+          Card(
+            child: ExpansionTile(
+              title: const Text(
+                'Relatórios',
+                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
+              ),
+              children: [
+                ListTile(
+                  title: const Text('Consultar histórico'),
+                  onTap: () {},
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

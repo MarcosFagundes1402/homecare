@@ -26,7 +26,6 @@ class _HistoricoRelatoriosState extends State<HistoricoRelatorios> {
   @override
   void initState() {
     super.initState();
-
     buscarHistorico();
   }
 

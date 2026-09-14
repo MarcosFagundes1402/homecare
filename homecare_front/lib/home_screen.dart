@@ -1,3 +1,4 @@
+import 'package:app/admin_home.dart';
 import 'package:flutter/material.dart';
 import 'package:app/paciente_home.dart';
 import 'package:app/cuidador_home.dart';
@@ -23,7 +24,7 @@ class HomeScreen extends StatelessWidget {
         return CuidadorHome(nome: nome, token: token);
 
       case 'admin':
-        return Scaffold(body: Center(child: Text('Área do admin - $nome')));
+        return AdminHome(nome: nome, token: token,);
 
       default:
         return const Scaffold(

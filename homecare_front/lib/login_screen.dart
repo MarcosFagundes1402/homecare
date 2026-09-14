@@ -65,7 +65,7 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
     } catch (erro) {
-      print('ERRO: $erro');
+      debugPrint('ERRO: $erro');
     }
   }
 
