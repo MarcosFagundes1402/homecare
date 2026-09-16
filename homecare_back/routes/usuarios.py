@@ -325,14 +325,17 @@ def criar_usuario():
             "erro": "Dados não enviados"
         }), 400
 
+    role_recebida = novo_usuario.get("role")
+
     campos_obrigatorios = [
         "nome",
         "email",
         "senha",
+        "confirmar_senha",
         "role"
     ]
 
-    if novo_usuario["role"] in ["paciente", "cuidador"]:
+    if role_recebida in ["paciente", "cuidador"]:
         campos_obrigatorios += [
             "cpf",
             "data_nascimento",
@@ -351,15 +354,20 @@ def criar_usuario():
                     "erro": f"o campo '{campo}' é obrigatório."
                 }), 400
 
+    #VALIDA SE AS SENHA SÃO IGUAIS
+    if novo_usuario ["senha"] != novo_usuario ["confirmar_senha"]:
+        return jsonify({
+            "erro": "As senhas não coincidem."
+        }), 400
+
     role = novo_usuario["role"].lower()
 
-    roles_permitidas = ["paciente", "cuidador"]
+    roles_permitidas = ["admin", "paciente", "cuidador"]
 
     if role not in roles_permitidas:
         return jsonify({
-            "erro": "Role inválid. Ultilize paciente ou cuidador."
+            "erro": "Função inválida. Ultilize paciente ou cuidador."
         }), 400
-
 
     conexao = None
 
@@ -460,6 +468,7 @@ def criar_usuario():
     finally:
         if conexao:
             conexao.close()
+
 #ROTA ESQUECI SENHA
 @usuario_bp.route("/usuarios/esqueci-senha", methods=['POST'])
 def forgot_password():

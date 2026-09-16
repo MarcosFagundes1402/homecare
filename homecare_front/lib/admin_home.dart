@@ -1,6 +1,6 @@
+import 'package:app/criar_usuarios.dart';
 import 'package:app/listar_usuario.dart';
 import 'package:flutter/material.dart';
-
 class AdminHome extends StatefulWidget {
   final String nome;
   final String token;
@@ -43,17 +43,28 @@ class _AdminHomeState extends State<AdminHome> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ListarUsuarios(token: widget.token),
-                      )
+                        builder: (context) =>
+                            ListarUsuarios(token: widget.token),
+                      ),
                     );
                   },
                 ),
 
-                ListTile(title: const Text('Criar usuário'), onTap: () {}),
+                ListTile(
+                  title: const Text('Criar usuário'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (context) => 
+                                  CriarUsuarios(token: widget.token)
+                      )
+                    );
+                  },
+                ),
               ],
             ),
           ),
-        
+
           // CARD DE VINCULOS
           Card(
             child: ExpansionTile(
@@ -78,9 +89,15 @@ class _AdminHomeState extends State<AdminHome> {
               ),
 
               children: [
-                ListTile(title: const Text('Consultar todos os medicamentos'), onTap: () {},),
+                ListTile(
+                  title: const Text('Consultar todos os medicamentos'),
+                  onTap: () {},
+                ),
 
-                ListTile(title: const Text('Consultar por paciente'), onTap: () {},),
+                ListTile(
+                  title: const Text('Consultar por paciente'),
+                  onTap: () {},
+                ),
 
                 ListTile(title: const Text('Criar medicamento'), onTap: () {}),
               ],
