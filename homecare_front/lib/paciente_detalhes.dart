@@ -8,11 +8,13 @@ import 'package:app/registrar_administracao.dart';
 class PacienteDetalhes extends StatelessWidget {
   final Map paciente;
   final String token;
+  final bool modoAdmin;
 
   const PacienteDetalhes({
     super.key,
     required this.paciente,
     required this.token,
+    this.modoAdmin = false,
   });
 
   @override
@@ -93,6 +95,7 @@ class PacienteDetalhes extends StatelessWidget {
                     pacienteNome: paciente['nome'],
                     pacienteId: paciente['id'],
                     token: token,
+                    modoAdmin: modoAdmin,
                   ),
                 ),
               );

@@ -118,6 +118,7 @@ class _CuidadorHomeState extends State<CuidadorHome> {
                               context,
                               MaterialPageRoute(builder: (context) => PacienteDetalhes(
                                 paciente: pacientes,
+                                modoAdmin: false,
                                 token: widget.token,
                               )
                               )

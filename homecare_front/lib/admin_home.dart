@@ -1,6 +1,8 @@
 import 'package:app/criar_usuarios.dart';
 import 'package:app/listar_usuario.dart';
+import 'package:app/vinculos_screen.dart';
 import 'package:flutter/material.dart';
+
 class AdminHome extends StatefulWidget {
   final String nome;
   final String token;
@@ -55,9 +57,10 @@ class _AdminHomeState extends State<AdminHome> {
                   onTap: () {
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (context) => 
-                                  CriarUsuarios(token: widget.token)
-                      )
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            CriarUsuarios(token: widget.token),
+                      ),
                     );
                   },
                 ),
@@ -75,7 +78,19 @@ class _AdminHomeState extends State<AdminHome> {
               children: [
                 ListTile(title: const Text('Criar vínculo'), onTap: () {}),
 
-                ListTile(title: const Text('Ver vínculos'), onTap: () {}),
+                ListTile(
+                  title: const Text('Ver vínculos'),
+                  onTap: () {
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(
+                        builder: (context) => VinculosScreen(
+                          token: widget.token,
+                          )
+                      )
+                    );
+                  },
+                ),
               ],
             ),
           ),

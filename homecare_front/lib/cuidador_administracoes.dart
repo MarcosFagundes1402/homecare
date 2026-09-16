@@ -8,11 +8,14 @@ class CuidadorAdministracoes extends StatefulWidget {
   final int pacienteId;
   final String token;
 
+  final bool modoAdmin;
+
   const CuidadorAdministracoes({
     super.key,
     required this.pacienteNome,
     required this.pacienteId,
     required this.token,
+    this.modoAdmin = false,
   });
 
   @override
@@ -31,7 +34,9 @@ class _CuidadorAdministracoesState extends State<CuidadorAdministracoes> {
 
   Future<void> buscarAdministracoes() async {
     final url = Uri.parse(
-      'http://localhost:5000/administracao_medicamentos/cuidador/paciente/${widget.pacienteId}',
+      widget.modoAdmin
+          ? 'http://localhost:5000/administracao_medicamentos/admin/paciente/${widget.pacienteId}'
+          : 'http://localhost:5000/administracao_medicamentos/cuidador/paciente/${widget.pacienteId}',
     );
 
     try {
@@ -67,7 +72,6 @@ class _CuidadorAdministracoesState extends State<CuidadorAdministracoes> {
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
       appBar: AppBar(title: Text('Administrações de : ${widget.pacienteNome}')),
 
@@ -81,22 +85,19 @@ class _CuidadorAdministracoesState extends State<CuidadorAdministracoes> {
 
                 return Card(
                   child: ExpansionTile(
-                    title:  Text(
-                      administracao['medicamento']['nome'],
-                    ),
+                    title: Text(administracao['medicamento']['nome']),
 
                     subtitle: Text(
                       'Administrado por: ${administracao['responsavel']['nome']}'
-                      ' em: ${administracao['horario_administrado'] }'
+                      ' em: ${administracao['horario_administrado']}',
                     ),
-                    
+
                     children: [
                       Padding(
                         padding: const EdgeInsetsGeometry.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-
                             Text(
                               'Dosagem administrada: ${administracao['dosagem_administrada']}',
                             ),
@@ -106,9 +107,9 @@ class _CuidadorAdministracoesState extends State<CuidadorAdministracoes> {
                             Text('Observação: ${administracao['obs']}'),
                           ],
                         ),
-                      )
+                      ),
                     ],
-                  )
+                  ),
                 );
               },
             ),
