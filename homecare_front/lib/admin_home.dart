@@ -1,4 +1,5 @@
 import 'package:app/criar_usuarios.dart';
+import 'package:app/criar_vinculos_screen.dart';
 import 'package:app/listar_usuario.dart';
 import 'package:app/vinculos_screen.dart';
 import 'package:flutter/material.dart';
@@ -76,18 +77,25 @@ class _AdminHomeState extends State<AdminHome> {
                 style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600),
               ),
               children: [
-                ListTile(title: const Text('Criar vínculo'), onTap: () {}),
+                ListTile(
+                  title: const Text('Criar vínculo'),
+                  onTap: () {
+                    Navigator.push(
+                      context, 
+                      MaterialPageRoute(builder: (context) => CriarVinculosScreen(token: widget.token))
+                    );
+                  },
+                ),
 
                 ListTile(
                   title: const Text('Ver vínculos'),
                   onTap: () {
                     Navigator.push(
-                      context, 
+                      context,
                       MaterialPageRoute(
-                        builder: (context) => VinculosScreen(
-                          token: widget.token,
-                          )
-                      )
+                        builder: (context) =>
+                            VinculosScreen(token: widget.token),
+                      ),
                     );
                   },
                 ),

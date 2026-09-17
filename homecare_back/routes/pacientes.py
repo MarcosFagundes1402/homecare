@@ -12,7 +12,7 @@ from utils import (
 pacientes_bp = Blueprint("pacientes", __name__)
 
 # CONSULTADO TODOS PACIENTES
-@pacientes_bp.route("/pacientes/consulta", methods=['GET'])
+@pacientes_bp.route("/pacientes/consultar", methods=['GET'])
 @jwt_required()
 @roles_required("admin")
 def mostrar_pacientes():
