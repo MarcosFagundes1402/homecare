@@ -1,3 +1,6 @@
+import 'package:app/consultar_madicamentos.dart';
+import 'package:app/consultar_medicamento_individual.dart';
+import 'package:app/criar_medicamentos.dart';
 import 'package:app/criar_usuarios.dart';
 import 'package:app/criar_vinculos_screen.dart';
 import 'package:app/listar_usuario.dart';
@@ -81,8 +84,11 @@ class _AdminHomeState extends State<AdminHome> {
                   title: const Text('Criar vínculo'),
                   onTap: () {
                     Navigator.push(
-                      context, 
-                      MaterialPageRoute(builder: (context) => CriarVinculosScreen(token: widget.token))
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            CriarVinculosScreen(token: widget.token),
+                      ),
                     );
                   },
                 ),
@@ -114,15 +120,43 @@ class _AdminHomeState extends State<AdminHome> {
               children: [
                 ListTile(
                   title: const Text('Consultar todos os medicamentos'),
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ConsultarMadicamentos(token: widget.token),
+                      ),
+                    );
+                  },
                 ),
 
                 ListTile(
                   title: const Text('Consultar por paciente'),
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) =>
+                            ConsultarMedicamentoIndividual(token: widget.token),
+                      ),
+                    );
+                  },
                 ),
 
-                ListTile(title: const Text('Criar medicamento'), onTap: () {}),
+                ListTile(
+                  title: const Text('Criar medicamento'),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CriarMedicamentos(
+                          token: widget.token,
+                          ),
+                      )
+                    );
+                  },
+                ),
               ],
             ),
           ),

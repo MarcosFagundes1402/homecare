@@ -138,7 +138,53 @@ def criar_medicamentos():
     finally:
         if conexao:
             conexao.close()
+#ADMIN CONSULTA TODOS OS MEDICAMENTOS
+@medicamentos_bp.route("/medicamentos/consultar", methods=['GET'])
+@jwt_required()
+@roles_required("admin")
+def consultar_medicamentos():
+    conexao = None
 
+    try:
+        conexao = connect()
+        cursor = conexao.cursor()
+
+        usuario_logado = get_jwt_identity()
+
+        cursor.execute("""
+            SELECT
+                id,
+                paciente_id,
+                nome,
+                dosagem,
+                horario,
+                obs,
+                status
+            FROM medicamentos
+            ORDER BY nome
+        """)
+
+        medicamentos = cursor.fetchall()
+
+        if not medicamentos:
+            return jsonify({
+                "msg": "Nenhum medicamento encontrado."
+            }), 200
+
+        lista_medicamentos = [dict(medicamento)for medicamento in medicamentos]
+
+        return jsonify({
+            "medicamentos": lista_medicamentos
+        }), 200
+
+    except Exception as e:
+        return jsonify({
+            "erro": str(e)
+        }), 500
+    finally:
+        if conexao:
+            conexao.close()
+        
 # ADMIN CONSULTAR MEDICAMENTOS DE UM PACIENTE
 @medicamentos_bp.route("/medicamentos/consultar-paciente/<int:id>", methods=['GET'])
 @jwt_required()
