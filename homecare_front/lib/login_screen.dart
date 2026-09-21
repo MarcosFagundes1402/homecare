@@ -99,6 +99,10 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: senhaController,
                 focusNode: senhaFocus,
                 obscureText: !mostrarSenha,
+                
+                onSubmitted: (value) {
+                  fazerLogin();
+                },
 
                 decoration: InputDecoration(
                   labelText: 'Senha',
@@ -129,8 +133,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => const 
-                        ForgotPasswordScreen(),
+                        builder: (context) => const ForgotPasswordScreen(),
                       ),
                     );
                   },
@@ -147,9 +150,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   onPressed: fazerLogin,
 
                   style: ElevatedButton.styleFrom(
-                    side: const BorderSide(color: Color.fromARGB(255, 0, 53, 97), width: 2),
+                    side: const BorderSide(
+                      color: Color.fromARGB(255, 0, 53, 97),
+                      width: 2,
+                    ),
                   ),
-
                   child: const Text('ENTRAR'),
                 ),
               ),

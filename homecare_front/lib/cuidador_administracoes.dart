@@ -94,7 +94,7 @@ class _CuidadorAdministracoesState extends State<CuidadorAdministracoes> {
 
                     children: [
                       Padding(
-                        padding: const EdgeInsetsGeometry.all(16),
+                        padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [

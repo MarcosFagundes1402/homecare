@@ -168,7 +168,7 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
                       const SizedBox(height: 20),
 
                       DropdownButtonFormField<String>(
-                        value: roleSelecionada,
+                        initialValue: roleSelecionada,
                         decoration: const InputDecoration(
                           labelText: 'Função',
                           border: OutlineInputBorder(),
