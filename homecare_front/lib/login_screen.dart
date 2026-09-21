@@ -155,7 +155,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => CriarUsuarios(),
+                        builder: (context) => CriarUsuarios(
+                          modoCadastro: true,
+                        ),
                       )
                     );
                   },

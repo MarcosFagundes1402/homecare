@@ -315,7 +315,7 @@ def desativar_usuario(id):
 # CRIAR USUARIO
 @usuario_bp.route("/cadastro", methods=["POST"])
 def cadastro():
-    print('cadastrouuu')
+    print('chegou em cadastro')
     dados = request.get_json()
 
     campos_obrigatorios = [
