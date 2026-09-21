@@ -42,9 +42,14 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
   String? roleSelecionada;
 
   Future<void> criarUsuarios() async {
+    debugPrint('cliclou 1');
     final url = Uri.parse(
-      widget.modoCadastro ? '$baseUrl/cadastro' : '$baseUrl/usuarios/criar',
+            widget.modoCadastro 
+              ? '$baseUrl/cadastro' 
+              : '$baseUrl/usuarios/criar',
     );
+
+    debugPrint('cliclou 2');
 
     final dados = {
       'nome': nomeController.text.trim(),
@@ -53,6 +58,8 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
       'confirmar_senha': confirmarsenhaController.text.trim(),
       'role': roleSelecionada,
     };
+
+    debugPrint('cliclou 3');
 
     if (roleSelecionada == 'paciente' || roleSelecionada == 'cuidador') {
       dados.addAll({
@@ -65,6 +72,8 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
     }
 
     try {
+      debugPrint('cliclou 4');
+
       final response = await http.post(
         url,
         headers: {
@@ -75,11 +84,15 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
         body: jsonEncode(dados),
       );
 
+      debugPrint('cliclou 5');
+      debugPrint('status: ${response.statusCode}');
+      debugPrint('body: ${response.body}');
+
       final resposta = jsonDecode(response.body);
 
       if (!mounted) return;
 
-      if (response.statusCode == 201) {
+      if (response.statusCode == 201 || response.statusCode == 200) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
@@ -95,6 +108,7 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
         setState(() {
           roleSelecionada = null;
         });
+
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(resposta['erro'] ?? 'Erro ao criar usuário.')),
@@ -102,6 +116,11 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
       }
     } catch (erro) {
       debugPrint('erro: $erro');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text('Erro: $erro')));
     }
   }
 

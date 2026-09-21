@@ -315,6 +315,7 @@ def desativar_usuario(id):
 # CRIAR USUARIO
 @usuario_bp.route("/cadastro", methods=["POST"])
 def cadastro():
+    print('cadastrouuu')
     dados = request.get_json()
 
     campos_obrigatorios = [
@@ -347,9 +348,6 @@ def cadastro():
         return jsonify({
             "erro": "As senhas não coincidem."
         }), 400
-
-    # daqui fazemos a consulta para saber
-    # se o e-mail já existe
 
     # depois cria usuario com role paciente
 @usuario_bp.route('/usuarios/criar', methods=['POST'])
