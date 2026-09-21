@@ -315,41 +315,156 @@ def desativar_usuario(id):
 # CRIAR USUARIO
 @usuario_bp.route("/usuarios/cadastro", methods=["POST"])
 def cadastro():
-    print('chegou em cadastro')
-    dados = request.get_json()
+
+    novo_usuario = request.get_json()
+
+    if not novo_usuario:
+        return jsonify({
+            "erro": "Dados não enviados"
+        }), 400
+
+    role_recebida = novo_usuario.get("role")
 
     campos_obrigatorios = [
         "nome",
         "email",
         "senha",
         "confirmar_senha",
-        "cpf",
-        "data_nascimento",
-        "tel",
-        "endereco"
+        "role"
     ]
+
+    if role_recebida in ["paciente", "cuidador"]:
+        campos_obrigatorios += [
+            "cpf",
+            "data_nascimento",
+            "tel",
+            "endereco"
+        ]
 
     for campo in campos_obrigatorios:
         if (
-            campo not in dados
-            or dados[campo] is None
-            or str(dados[campo]).strip() == ""
+            campo not in novo_usuario
+            or novo_usuario[campo] is None
+            or str(novo_usuario[campo]).strip() == ""
         ):
             return jsonify({
                 "erro": f"O campo '{campo}' é obrigatório."
             }), 400
 
-    nome = dados["nome"].strip()
-    email = dados["email"].strip().lower()
-    senha = dados["senha"]
-    confirmar_senha = dados["confirmar_senha"]
-
-    if senha != confirmar_senha:
+    if novo_usuario["senha"] != novo_usuario["confirmar_senha"]:
         return jsonify({
             "erro": "As senhas não coincidem."
         }), 400
 
-    # depois cria usuario com role paciente
+    role = novo_usuario["role"].lower()
+
+    roles_permitidas = ["admin", "paciente", "cuidador"]
+
+    if role not in roles_permitidas:
+        return jsonify({
+            "erro": "Função inválida."
+        }), 400
+
+    conexao = None
+
+    try:
+        conexao = connect()
+        cursor = conexao.cursor()
+
+        senha_hash = generate_password_hash(
+            novo_usuario["senha"]
+        )
+
+        cursor.execute("""
+            INSERT INTO usuarios (
+                nome,
+                email,
+                role,
+                senha
+            )
+            VALUES (?, ?, ?, ?)
+        """, (
+            novo_usuario["nome"],
+            novo_usuario["email"].strip().lower(),
+            role,
+            senha_hash
+        ))
+
+        usuario_id = cursor.lastrowid
+
+        if role == "paciente":
+            cursor.execute("""
+                INSERT INTO pacientes (
+                    id,
+                    nome,
+                    cpf,
+                    data_nascimento,
+                    tel,
+                    endereco,
+                    obs
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (
+                usuario_id,
+                novo_usuario["nome"],
+                novo_usuario["cpf"],
+                novo_usuario["data_nascimento"],
+                novo_usuario["tel"],
+                novo_usuario["endereco"],
+                novo_usuario.get("obs"),
+            ))
+
+        elif role == "cuidador":
+            cursor.execute("""
+                INSERT INTO cuidadores (
+                    id,
+                    nome,
+                    cpf,
+                    data_nascimento,
+                    tel,
+                    endereco,
+                    obs,
+                    status
+                )
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                usuario_id,
+                novo_usuario["nome"],
+                novo_usuario["cpf"],
+                novo_usuario["data_nascimento"],
+                novo_usuario["tel"],
+                novo_usuario["endereco"],
+                novo_usuario.get("obs"),
+                "ativo"
+            ))
+
+        conexao.commit()
+
+        return jsonify({
+            "msg": f"{role.capitalize()} cadastrado com sucesso.",
+            "id": usuario_id
+        }), 201
+
+    except sqlite3.IntegrityError as e:
+        if conexao:
+            conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 400
+
+    except Exception as e:
+        if conexao:
+            conexao.rollback()
+
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+    finally:
+        if conexao:
+            conexao.close()
+
 @usuario_bp.route('/usuarios/criar', methods=['POST'])
 @jwt_required()
 @roles_required("admin")
