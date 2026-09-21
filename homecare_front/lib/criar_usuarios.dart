@@ -7,8 +7,9 @@ import 'package:http/http.dart' as http;
 
 class CriarUsuarios extends StatefulWidget {
   final String token;
+  final bool modoCadastro;
 
-  const CriarUsuarios({super.key, required this.token});
+  const CriarUsuarios({super.key, this.token = '', this.modoCadastro = false});
 
   @override
   State<CriarUsuarios> createState() => _CriarUsuariosState();
@@ -41,11 +42,13 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
   String? roleSelecionada;
 
   Future<void> criarUsuarios() async {
-    final url = Uri.parse('$baseUrl/usuarios/criar');
+    final url = Uri.parse(
+      widget.modoCadastro ? '$baseUrl/cadastro' : '$baseUrl/usuarios/criar',
+    );
 
     final dados = {
       'nome': nomeController.text.trim(),
-      'email': emailController.text.trim(),
+      'email': emailController.text.trim().toLowerCase(),
       'senha': senhaController.text.trim(),
       'confirmar_senha': confirmarsenhaController.text.trim(),
       'role': roleSelecionada,
@@ -65,8 +68,9 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
       final response = await http.post(
         url,
         headers: {
-          'Authorization': 'Bearer ${widget.token}',
           'Content-Type': 'application/json',
+
+          if (!widget.modoCadastro) 'Authorization': 'Bearer ${widget.token}',
         },
         body: jsonEncode(dados),
       );
@@ -104,7 +108,10 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Criar usuário'), actions: [LogoutButton()]),
+      appBar: AppBar(
+        title: Text(widget.modoCadastro ? 'Criar conta' : 'Criar usuário'),
+        actions: widget.modoCadastro ? [] : const [LogoutButton()],
+      ),
 
       body: ListView(
         padding: const EdgeInsets.all(20),

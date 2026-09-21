@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:app/criar_usuarios.dart';
 import 'package:app/forgot_password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -23,7 +24,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool mostrarSenha = false;
 
   Future<void> fazerLogin() async {
-    
     FocusScope.of(context).unfocus();
 
     final email = emailController.text.trim().toLowerCase();
@@ -143,6 +143,23 @@ class _LoginScreenState extends State<LoginScreen> {
                     );
                   },
                   child: const Text('Esqueceu sua senha?'),
+                ),
+              ),
+
+              const SizedBox(height: 8),
+
+              Align(
+                alignment: Alignment.center,
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => CriarUsuarios(),
+                      )
+                    );
+                  },
+                  child: const Text('Cadastrar'),
                 ),
               ),
 
