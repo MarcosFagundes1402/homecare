@@ -5,7 +5,12 @@ from routes import registrar_rotas
 
 app = Flask(__name__)
 
-CORS(app)
+CORS(
+    app,
+    resources={r"/*": {"origins": "*"}},
+    allow_headers=["Content-Type", "Authorization"],
+    methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+)
 
 app.config["JWT_SECRET_KEY"] = "chave_secreta"
 
