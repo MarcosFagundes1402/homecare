@@ -313,6 +313,45 @@ def desativar_usuario(id):
         conexao.close()
 
 # CRIAR USUARIO
+@usuario_bp.route("/cadastro", methods=["POST"])
+def cadastro():
+    dados = request.get_json()
+
+    campos_obrigatorios = [
+        "nome",
+        "email",
+        "senha",
+        "confirmar_senha",
+        "cpf",
+        "data_nascimento",
+        "tel",
+        "endereco"
+    ]
+
+    for campo in campos_obrigatorios:
+        if (
+            campo not in dados
+            or dados[campo] is None
+            or str(dados[campo]).strip() == ""
+        ):
+            return jsonify({
+                "erro": f"O campo '{campo}' é obrigatório."
+            }), 400
+
+    nome = dados["nome"].strip()
+    email = dados["email"].strip().lower()
+    senha = dados["senha"]
+    confirmar_senha = dados["confirmar_senha"]
+
+    if senha != confirmar_senha:
+        return jsonify({
+            "erro": "As senhas não coincidem."
+        }), 400
+
+    # daqui fazemos a consulta para saber
+    # se o e-mail já existe
+
+    # depois cria usuario com role paciente
 @usuario_bp.route('/usuarios/criar', methods=['POST'])
 @jwt_required()
 @roles_required("admin")
