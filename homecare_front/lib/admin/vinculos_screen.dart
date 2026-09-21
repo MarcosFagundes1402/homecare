@@ -1,8 +1,8 @@
 import 'dart:convert';
 
-import 'package:app/api.dart';
-import 'package:app/logout_button.dart';
-import 'package:app/paciente_detalhes.dart';
+import 'package:app/config/api.dart';
+import 'package:app/widgets/logout_button.dart';
+import 'package:app/cuidador/paciente_detalhes.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 

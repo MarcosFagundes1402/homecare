@@ -1,13 +1,13 @@
-import 'package:app/consultar_administra%C3%A7%C3%B5es.dart';
-import 'package:app/consultar_madicamentos.dart';
-import 'package:app/consultar_medicamento_individual.dart';
-import 'package:app/consultar_relatorio.dart';
-import 'package:app/criar_medicamentos.dart';
-import 'package:app/criar_usuarios.dart';
-import 'package:app/criar_vinculos_screen.dart';
-import 'package:app/listar_usuario.dart';
-import 'package:app/logout_button.dart';
-import 'package:app/vinculos_screen.dart';
+import 'package:app/admin/consultar_administracoes.dart';
+import 'package:app/admin/consultar_madicamentos.dart';
+import 'package:app/admin/consultar_medicamento_individual.dart';
+import 'package:app/admin/consultar_relatorio.dart';
+import 'package:app/admin/criar_medicamentos.dart';
+import 'package:app/admin/criar_usuarios.dart';
+import 'package:app/admin/criar_vinculos_screen.dart';
+import 'package:app/admin/listar_usuario.dart';
+import 'package:app/widgets/logout_button.dart';
+import 'package:app/admin/vinculos_screen.dart';
 import 'package:flutter/material.dart';
 
 class AdminHome extends StatefulWidget {

@@ -1,7 +1,7 @@
-import 'package:app/admin_home.dart';
+import 'package:app/admin/admin_home.dart';
 import 'package:flutter/material.dart';
-import 'package:app/paciente_home.dart';
-import 'package:app/cuidador_home.dart';
+import 'package:app/paciente/paciente_home.dart';
+import 'package:app/cuidador/cuidador_home.dart';
 class HomeScreen extends StatelessWidget {
   final String nome;
   final String role;

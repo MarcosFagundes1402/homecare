@@ -1,10 +1,10 @@
-import 'package:app/criar_relatorio.dart';
-import 'package:app/cuidador_administracoes.dart';
-import 'package:app/historico_relatorios.dart';
-import 'package:app/logout_button.dart';
-import 'package:app/medicamentos_paciente.dart';
+import 'package:app/cuidador/criar_relatorio.dart';
+import 'package:app/cuidador/cuidador_administracoes.dart';
+import 'package:app/cuidador/historico_relatorios.dart';
+import 'package:app/widgets/logout_button.dart';
+import 'package:app/paciente/medicamentos_paciente.dart';
 import 'package:flutter/material.dart';
-import 'package:app/registrar_administracao.dart';
+import 'package:app/cuidador/registrar_administracao.dart';
 
 class PacienteDetalhes extends StatelessWidget {
   final Map paciente;

@@ -33,8 +33,8 @@ class _ResetPasswordScreen extends State<ResetPasswordScreen> {
       return;
     }
 
-    print('EMAIL: ${widget.email}');
-    print('NOVA SENHA: $senha');
+    debugPrint('EMAIL: ${widget.email}');
+    debugPrint('NOVA SENHA: $senha');
   }
 
   @override
