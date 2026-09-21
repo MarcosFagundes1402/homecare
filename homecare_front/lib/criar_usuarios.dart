@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -39,7 +41,7 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
   String? roleSelecionada;
 
   Future<void> criarUsuarios() async {
-    final url = Uri.parse('http://localhost:5000/usuarios/criar');
+    final url = Uri.parse('$baseUrl/usuarios/criar');
 
     final dados = {
       'nome': nomeController.text.trim(),
@@ -85,7 +87,7 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
         for (final controller in controllers) {
           controller.clear();
         }
-        
+
         setState(() {
           roleSelecionada = null;
         });
@@ -102,7 +104,7 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Criar usuário')),
+      appBar: AppBar(title: Text('Criar usuário'), actions: [LogoutButton()]),
 
       body: ListView(
         padding: const EdgeInsets.all(20),

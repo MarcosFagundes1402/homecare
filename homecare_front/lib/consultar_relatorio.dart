@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -24,7 +26,7 @@ class _ConsultarRelatorioState extends State<ConsultarRelatorio> {
   }
 
   Future<void> buscarRelatorios() async {
-    final url = Uri.parse('http://localhost:5000/relatorios_diarios');
+    final url = Uri.parse('$baseUrl/relatorios_diarios');
 
     try {
       final response = await http.get(
@@ -72,7 +74,10 @@ class _ConsultarRelatorioState extends State<ConsultarRelatorio> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Consultar relatórios')),
+      appBar: AppBar(
+        title: const Text('Consultar relatórios'),
+        actions: [LogoutButton()],
+      ),
 
       body: relatoriosPorPaciente.isEmpty
           ? Center(child: Text(msg))
@@ -127,7 +132,7 @@ class _ConsultarRelatorioState extends State<ConsultarRelatorio> {
                                 Text(
                                   'Higiene: ${relatorio['higiene'] ?? 'Não informado'}',
                                 ),
-                                
+
                                 Text(
                                   'Glicemia: ${relatorio['glicemia'] ?? 'Não informado'}',
                                 ),

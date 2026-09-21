@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -31,7 +33,7 @@ class _MinhasAdministracoesState extends State<MinhasAdministracoes> {
 
   Future<void> buscarAdministracoes() async {
     final url = Uri.parse(
-      'http://localhost:5000/administracao_medicamentos/paciente/meu-historico',
+      '$baseUrl/administracao_medicamentos/paciente/meu-historico',
     );
 
     try {
@@ -53,7 +55,6 @@ class _MinhasAdministracoesState extends State<MinhasAdministracoes> {
           carregando = false;
         });
       }
-      
     } catch (erro) {
       debugPrint('ERRO RELATORIOS: $erro');
     }
@@ -64,7 +65,10 @@ class _MinhasAdministracoesState extends State<MinhasAdministracoes> {
     final administracoesVisiveis = administracoes.take(5).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Voltar - Home Paciente')),
+      appBar: AppBar(
+        title: const Text('Voltar - Home Paciente'),
+        actions: [LogoutButton()],
+      ),
 
       //CARD MEU HISTORICO DE ADMINISTRACOES
       body: ListView(

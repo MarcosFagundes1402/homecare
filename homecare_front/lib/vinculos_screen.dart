@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:app/paciente_detalhes.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -25,7 +27,7 @@ class _VinculosScreenState extends State<VinculosScreen> {
   }
 
   Future<void> buscarCuidadores() async {
-    final url = Uri.parse('http://localhost:5000/cuidadores/consultar');
+    final url = Uri.parse('$baseUrl/cuidadores/consultar');
 
     try {
       final response = await http.get(
@@ -52,7 +54,7 @@ class _VinculosScreenState extends State<VinculosScreen> {
 
   Future<void> buscarVinculo(int cuidadorID) async {
     final url = Uri.parse(
-      'http://localhost:5000/cuidadores_pacientes/consultar-cuidador/$cuidadorID',
+      '$baseUrl/cuidadores_pacientes/consultar-cuidador/$cuidadorID',
     );
 
     try {
@@ -85,7 +87,10 @@ class _VinculosScreenState extends State<VinculosScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Ver vínculos')),
+      appBar: AppBar(
+        title: const Text('Ver vínculos'),
+        actions: [LogoutButton()],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [

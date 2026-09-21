@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -24,7 +26,7 @@ class _ConsultarState extends State<ConsultarMedicamentoIndividual> {
   }
 
   Future<void> buscarPacientes() async {
-    final url = Uri.parse('http://localhost:5000/pacientes/consultar');
+    final url = Uri.parse('$baseUrl/pacientes/consultar');
 
     try {
       final response = await http.get(
@@ -57,7 +59,7 @@ class _ConsultarState extends State<ConsultarMedicamentoIndividual> {
 
   Future<void> buscarMedicamentos(int pacienteID) async {
     final url = Uri.parse(
-      'http://localhost:5000/medicamentos/consultar-paciente/$pacienteID',
+      '$baseUrl/medicamentos/consultar-paciente/$pacienteID',
     );
 
     try {
@@ -88,7 +90,10 @@ class _ConsultarState extends State<ConsultarMedicamentoIndividual> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Consultar medicamentos')),
+      appBar: AppBar(
+        title: const Text('Consultar medicamentos'),
+        actions: const [LogoutButton()],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: pacientes.map<Widget>((paciente) {

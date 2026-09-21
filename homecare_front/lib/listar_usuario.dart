@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:app/usuarios_detalhes.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
@@ -36,7 +38,7 @@ class _ListarUsuariosState extends State<ListarUsuarios> {
   }
 
   Future<void> buscarUsuarios() async {
-    final url = Uri.parse('http://localhost:5000/usuarios/consultar');
+    final url = Uri.parse('$baseUrl/usuarios/consultar');
 
     try {
       final response = await http.get(
@@ -64,7 +66,10 @@ class _ListarUsuariosState extends State<ListarUsuarios> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Lista de todos os pacientes')),
+      appBar: AppBar(
+        title: const Text('Lista de todos os pacientes'),
+        actions: [LogoutButton()],
+      ),
 
       body: usuarios.isEmpty
           ? const Center(child: Text('Nenhum usuário encontrado'))
@@ -87,10 +92,10 @@ class _ListarUsuariosState extends State<ListarUsuarios> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => UsuariosDetalhes(
-                            usuario: usuario,
-                            token: widget.token,
-                          ),
-                      )
+                          usuario: usuario,
+                          token: widget.token,
+                        ),
+                      ),
                     );
                   },
                 );

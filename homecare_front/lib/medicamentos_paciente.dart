@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -31,7 +33,7 @@ class _MedicamentosPacienteState extends State<MedicamentosPaciente> {
 
   Future<void> buscarMedicamentos() async {
     final url = Uri.parse(
-      'http://localhost:5000/medicamentos/consultar-paciente/${widget.pacienteId}',
+      '$baseUrl/medicamentos/consultar-paciente/${widget.pacienteId}',
     );
 
     try {
@@ -77,7 +79,10 @@ class _MedicamentosPacienteState extends State<MedicamentosPaciente> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Medicações de: ${widget.pacienteNome}')),
+      appBar: AppBar(
+        title: Text('Medicações de: ${widget.pacienteNome}'),
+        actions: [LogoutButton()],
+      ),
 
       body: medicamentos.isEmpty
           ? Center(child: Text(msg.isEmpty ? 'Carregando...' : msg))
@@ -99,7 +104,11 @@ class _MedicamentosPacienteState extends State<MedicamentosPaciente> {
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [Text('Observações: ${medicamento['obs'] ?? 'Sem observações'}')],
+                          children: [
+                            Text(
+                              'Observações: ${medicamento['obs'] ?? 'Sem observações'}',
+                            ),
+                          ],
                         ),
                       ),
                     ],

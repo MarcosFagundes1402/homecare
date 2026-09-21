@@ -1,6 +1,7 @@
 import 'package:app/criar_relatorio.dart';
 import 'package:app/cuidador_administracoes.dart';
 import 'package:app/historico_relatorios.dart';
+import 'package:app/logout_button.dart';
 import 'package:app/medicamentos_paciente.dart';
 import 'package:flutter/material.dart';
 import 'package:app/registrar_administracao.dart';
@@ -20,7 +21,10 @@ class PacienteDetalhes extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Detalhes do paciente')),
+      appBar: AppBar(
+        title: Text('Detalhes do paciente'),
+        actions: [LogoutButton()],
+      ),
 
       body: ListView(
         padding: const EdgeInsets.all(20),

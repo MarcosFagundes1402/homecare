@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -35,8 +37,8 @@ class _CuidadorAdministracoesState extends State<CuidadorAdministracoes> {
   Future<void> buscarAdministracoes() async {
     final url = Uri.parse(
       widget.modoAdmin
-          ? 'http://localhost:5000/administracao_medicamentos/admin/paciente/${widget.pacienteId}'
-          : 'http://localhost:5000/administracao_medicamentos/cuidador/paciente/${widget.pacienteId}',
+          ? '$baseUrl/administracao_medicamentos/admin/paciente/${widget.pacienteId}'
+          : '$baseUrl/administracao_medicamentos/cuidador/paciente/${widget.pacienteId}',
     );
 
     try {
@@ -73,7 +75,10 @@ class _CuidadorAdministracoesState extends State<CuidadorAdministracoes> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Administrações de : ${widget.pacienteNome}')),
+      appBar: AppBar(
+        title: Text('Administrações de : ${widget.pacienteNome}'),
+        actions: [LogoutButton()],
+      ),
 
       body: administracoes.isEmpty
           ? Center(child: Text(msg))

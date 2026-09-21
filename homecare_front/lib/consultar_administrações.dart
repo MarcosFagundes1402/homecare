@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -25,7 +27,7 @@ class _ConsultarAdministracoesState extends State<ConsultarAdministracoes> {
   }
 
   Future<void> buscarAdministracoes() async {
-    final url = Uri.parse('http://localhost:5000/administracao_medicamentos');
+    final url = Uri.parse('$baseUrl/administracao_medicamentos');
 
     try {
       final response = await http.get(
@@ -73,7 +75,10 @@ class _ConsultarAdministracoesState extends State<ConsultarAdministracoes> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Consultar administrações')),
+      appBar: AppBar(
+        title: const Text('Consultar administrações'),
+        actions: const [LogoutButton()],
+      ),
 
       body: administracoesPorPaciente.isEmpty
           ? Center(child: Text(msg))
@@ -110,21 +115,21 @@ class _ConsultarAdministracoesState extends State<ConsultarAdministracoes> {
                           vertical: 6,
                         ),
                         decoration: BoxDecoration(
-                          border: Border.all(color: const Color.fromARGB(73, 7, 7, 7)),
+                          border: Border.all(
+                            color: const Color.fromARGB(73, 7, 7, 7),
+                          ),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: ListTile(
                           title: Text(
                             '${administracao['medicamento']['nome']} - ${administracao['horario_administrado']}',
-                            style: TextStyle(
-                              fontWeight: FontWeight.w600,
-                            ),
+                            style: TextStyle(fontWeight: FontWeight.w600),
                           ),
                           subtitle: Text(
                             'Administrado por: ${administracao['responsavel']['nome']}\n'
                             'Dosagem: ${administracao['dosagem_administrada']}\n'
                             'Horário previsto: ${administracao['horario_previsto'] ?? 'Não informado'}\n'
-                            'Observações: ${administracao['obs'] ?? 'Sem observação'}'
+                            'Observações: ${administracao['obs'] ?? 'Sem observação'}',
                           ),
                           trailing: Text('${administracao['status']}'),
                         ),

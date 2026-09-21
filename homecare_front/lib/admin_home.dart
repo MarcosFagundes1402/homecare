@@ -6,6 +6,7 @@ import 'package:app/criar_medicamentos.dart';
 import 'package:app/criar_usuarios.dart';
 import 'package:app/criar_vinculos_screen.dart';
 import 'package:app/listar_usuario.dart';
+import 'package:app/logout_button.dart';
 import 'package:app/vinculos_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -23,7 +24,11 @@ class _AdminHomeState extends State<AdminHome> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Área do Administrador')),
+      appBar: AppBar(
+        title: const Text('Área do Administrador'),
+        actions: const [
+          LogoutButton(),
+        ],),
 
       body: ListView(
         padding: const EdgeInsets.all(50),

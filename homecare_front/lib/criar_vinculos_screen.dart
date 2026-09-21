@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -27,7 +29,7 @@ class _CriarVinculosScreenState extends State<CriarVinculosScreen> {
   }
 
   Future<void> buscarCuidadores() async {
-    final url = Uri.parse('http://localhost:5000/cuidadores/consultar');
+    final url = Uri.parse('$baseUrl/cuidadores/consultar');
 
     try {
       final response = await http.get(
@@ -55,7 +57,7 @@ class _CriarVinculosScreenState extends State<CriarVinculosScreen> {
   }
 
   Future<void> buscarPacientes() async {
-    final url = Uri.parse('http://localhost:5000/pacientes/consultar');
+    final url = Uri.parse('$baseUrl/pacientes/consultar');
 
     try {
       final response = await http.get(
@@ -90,9 +92,7 @@ class _CriarVinculosScreenState extends State<CriarVinculosScreen> {
       return;
     }
 
-    final url = Uri.parse(
-      'http://localhost:5000//cuidadores_pacientes/criar-vinculo',
-    );
+    final url = Uri.parse('$baseUrl/cuidadores_pacientes/criar-vinculo');
 
     try {
       final response = await http.post(
@@ -121,10 +121,7 @@ class _CriarVinculosScreenState extends State<CriarVinculosScreen> {
         );
 
         setState(() {
-          vinculoCriado = {
-            'cuidador': cuidador,
-            'paciente': paciente,
-          };
+          vinculoCriado = {'cuidador': cuidador, 'paciente': paciente};
         });
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -139,7 +136,7 @@ class _CriarVinculosScreenState extends State<CriarVinculosScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Criar vínculos')),
+      appBar: AppBar(title: Text('Criar vínculos'), actions: [LogoutButton()]),
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
@@ -217,7 +214,7 @@ class _CriarVinculosScreenState extends State<CriarVinculosScreen> {
 
                         Center(
                           child: ConstrainedBox(
-                            constraints: const BoxConstraints(maxWidth:  500),
+                            constraints: const BoxConstraints(maxWidth: 500),
                             child: Card(
                               child: Padding(
                                 padding: const EdgeInsetsGeometry.all(20),
@@ -234,17 +231,20 @@ class _CriarVinculosScreenState extends State<CriarVinculosScreen> {
 
                                     const SizedBox(height: 15),
 
-                                    Text('Cuidador: ${vinculoCriado!['cuidador']['nome']} | ID: ${vinculoCriado!['cuidador']['id']}'),
+                                    Text(
+                                      'Cuidador: ${vinculoCriado!['cuidador']['nome']} | ID: ${vinculoCriado!['cuidador']['id']}',
+                                    ),
 
-                                    Text('Paciente: ${vinculoCriado!['paciente']['nome']} | ID: ${vinculoCriado!['paciente']['id']}'),
-
+                                    Text(
+                                      'Paciente: ${vinculoCriado!['paciente']['nome']} | ID: ${vinculoCriado!['paciente']['id']}',
+                                    ),
                                   ],
                                 ),
                               ),
                             ),
                           ),
-                        )
-                      ]
+                        ),
+                      ],
                     ],
                   ),
                 ),

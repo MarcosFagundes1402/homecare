@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as htpp;
 import 'package:app/paciente_detalhes.dart';
@@ -24,9 +26,7 @@ class _CuidadorHomeState extends State<CuidadorHome> {
   }
 
   Future<void> buscarPacientes() async {
-    final url = Uri.parse(
-      'http://localhost:5000/cuidadores_pacientes/meus-pacientes',
-    );
+    final url = Uri.parse('$baseUrl/cuidadores_pacientes/meus-pacientes');
 
     try {
       final response = await htpp.get(
@@ -46,7 +46,6 @@ class _CuidadorHomeState extends State<CuidadorHome> {
           pacientes = dados;
         });
       }
-
     } catch (erro) {
       debugPrint('ERRO: $erro');
     }
@@ -57,7 +56,10 @@ class _CuidadorHomeState extends State<CuidadorHome> {
     final pacientesVisiveis = pacientes.take(3).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Home Cuidador')),
+      appBar: AppBar(
+        title: const Text('Home Cuidador'),
+        actions: [LogoutButton()],
+      ),
 
       //CARD DE BEM-VINDO
       body: ListView(
@@ -116,12 +118,13 @@ class _CuidadorHomeState extends State<CuidadorHome> {
                             // ABRIR DETALHES DO PACIENTE
                             Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => PacienteDetalhes(
-                                paciente: pacientes,
-                                modoAdmin: false,
-                                token: widget.token,
-                              )
-                              )
+                              MaterialPageRoute(
+                                builder: (context) => PacienteDetalhes(
+                                  paciente: pacientes,
+                                  modoAdmin: false,
+                                  token: widget.token,
+                                ),
+                              ),
                             );
                           },
                         );

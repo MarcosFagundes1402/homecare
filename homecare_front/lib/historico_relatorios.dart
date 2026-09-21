@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -32,7 +34,7 @@ class _HistoricoRelatoriosState extends State<HistoricoRelatorios> {
   //BUSCAR HISTORICOS DO PACIENTE
   Future<void> buscarHistorico() async {
     final url = Uri.parse(
-      'http://localhost:5000/relatorios_diarios/paciente/${widget.pacienteId}',
+      '$baseUrl/relatorios_diarios/paciente/${widget.pacienteId}',
     );
 
     try {
@@ -69,7 +71,10 @@ class _HistoricoRelatoriosState extends State<HistoricoRelatorios> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Relatórios de: ${widget.pacienteNome}')),
+      appBar: AppBar(
+        title: Text('Relatórios de: ${widget.pacienteNome}'),
+        actions: [LogoutButton()],
+      ),
 
       body: relatorios.isEmpty
           ? Center(child: Text(msg))
@@ -81,33 +86,31 @@ class _HistoricoRelatoriosState extends State<HistoricoRelatorios> {
 
                 return Card(
                   child: ExpansionTile(
-                  title: Text(
-                    'Relatório criado em: ${relatorio['data_horario']}',
-                  ),
-
-                  subtitle: Text(
-                    'por: ${relatorio['responsavel']['nome']}',
-                  ),
-
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text('Alimentação: ${relatorio['alimentacao']}'),
-                          Text('Glicemia: ${relatorio['glicemia']}'),
-                          Text('Higiene: ${relatorio['higiene']}'),
-                          Text(
-                            'Pressão Arterial: ${relatorio['pressao_arterial']}',
-                          ),
-                          Text('Temperatura: ${relatorio['temperatura']}'),
-                          Text('Observações: ${relatorio['observacoes']}'),
-                        ],
-                      ),
+                    title: Text(
+                      'Relatório criado em: ${relatorio['data_horario']}',
                     ),
-                  ],
-                ),
+
+                    subtitle: Text('por: ${relatorio['responsavel']['nome']}'),
+
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text('Alimentação: ${relatorio['alimentacao']}'),
+                            Text('Glicemia: ${relatorio['glicemia']}'),
+                            Text('Higiene: ${relatorio['higiene']}'),
+                            Text(
+                              'Pressão Arterial: ${relatorio['pressao_arterial']}',
+                            ),
+                            Text('Temperatura: ${relatorio['temperatura']}'),
+                            Text('Observações: ${relatorio['observacoes']}'),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
                 );
               },
             ),

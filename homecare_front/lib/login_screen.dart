@@ -4,6 +4,7 @@ import 'package:app/forgot_password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:app/home_screen.dart';
+import 'api.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -21,10 +22,10 @@ class _LoginScreenState extends State<LoginScreen> {
   bool mostrarSenha = false;
 
   Future<void> fazerLogin() async {
-    final email = emailController.text;
+    final email = emailController.text.trim().toLowerCase();
     final senha = senhaController.text;
 
-    final url = Uri.parse('http://localhost:5000/login');
+    final url = Uri.parse('$baseUrl/login');
 
     try {
       final response = await http.post(

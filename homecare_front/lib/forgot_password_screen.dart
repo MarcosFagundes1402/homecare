@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:app/ResetPasswordScreen.dart';
@@ -23,7 +25,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    final url = Uri.parse('http://localhost:5000/usuarios/esqueci-senha');
+    final url = Uri.parse('$baseUrl/usuarios/esqueci-senha');
 
     try {
       final response = await http.post(
@@ -31,9 +33,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({"email": email}),
       );
-
-      print('STATUS: ${response.statusCode}');
-      print('BODY: ${response.body}');
 
       final dados = jsonDecode(response.body);
 
@@ -43,28 +42,27 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(content: Text(dados['msg'])));
-          
+
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => ResetPasswordScreen(email: email),
           ),
         );
-
       } else {
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(SnackBar(content: Text(dados['erro'])));
       }
     } catch (erro) {
-      print('ERRO: $erro');
+      debugPrint('ERRO: $erro');
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Voltar')),
+      appBar: AppBar(title: const Text('Voltar'), actions: [LogoutButton()]),
       body: Center(
         child: SizedBox(
           width: 320,

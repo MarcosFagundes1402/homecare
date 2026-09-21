@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -29,9 +31,7 @@ class _PacienteHomeState extends State<PacienteHome> {
 
   // FAZ REQUISIÇÃO NA API E VERIFICA QUAL CUIDADOR ESTA VINCULADO AO PACIENTE
   Future<void> buscarCuidadores() async {
-    final url = Uri.parse(
-      'http://localhost:5000/cuidadores_pacientes/meus-cuidadores',
-    );
+    final url = Uri.parse('$baseUrl/cuidadores_pacientes/meus-cuidadores');
 
     try {
       final response = await http.get(
@@ -58,9 +58,7 @@ class _PacienteHomeState extends State<PacienteHome> {
 
   // FAZ A REQUISIÇÃO NA API E RETORNA OS MEDICAMENTOS DO PACIENTE
   Future<void> buscarMedicamentos() async {
-    final url = Uri.parse(
-      'http://localhost:5000/medicamentos/meus-medicamentos',
-    );
+    final url = Uri.parse('$baseUrl/medicamentos/meus-medicamentos');
 
     try {
       final response = await http.get(
@@ -91,7 +89,10 @@ class _PacienteHomeState extends State<PacienteHome> {
     final medicamentosVisiveis = medicamentos.take(3).toList();
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Home Paciente')),
+      appBar: AppBar(
+        title: const Text('Home Paciente'),
+        actions: [LogoutButton()],
+      ),
 
       // CARD DE BEM-VINDO
       body: ListView(

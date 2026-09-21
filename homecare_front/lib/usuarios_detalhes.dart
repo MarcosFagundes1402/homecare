@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -29,7 +31,7 @@ class _UsariosDetalhesState extends State<UsuariosDetalhes> {
   Future<void> buscarDetalhes() async {
     if (widget.usuario['role'] == 'paciente') {
       final url = Uri.parse(
-        'http://localhost:5000/pacientes/consultar/${widget.usuario['id']}',
+        '$baseUrl/pacientes/consultar/${widget.usuario['id']}',
       );
       try {
         final response = await http.get(
@@ -54,7 +56,7 @@ class _UsariosDetalhesState extends State<UsuariosDetalhes> {
       }
     } else if (widget.usuario['role'] == 'cuidador') {
       final url = Uri.parse(
-        'http://localhost:5000/cuidadores/consultar/${widget.usuario['id']}',
+        '$baseUrl/cuidadores/consultar/${widget.usuario['id']}',
       );
 
       try {
@@ -84,7 +86,10 @@ class _UsariosDetalhesState extends State<UsuariosDetalhes> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Detalhes do usuário')),
+      appBar: AppBar(
+        title: const Text('Detalhes do usuário'),
+        actions: [LogoutButton()],
+      ),
 
       body: ListView(
         padding: EdgeInsets.all(20),
@@ -99,16 +104,16 @@ class _UsariosDetalhesState extends State<UsuariosDetalhes> {
 
           if (widget.usuario['role'] == 'paciente' &&
               detalhes['paciente'] != null) ...[
-            Text('CPF: ${detalhes['paciente']['cpf']??''}'),
+            Text('CPF: ${detalhes['paciente']['cpf'] ?? ''}'),
             Text('Nascimento: ${detalhes['paciente']['data_nascimento']}'),
             Text('Contato: ${detalhes['paciente']['tel']}'),
             Text('Endereço: ${detalhes['paciente']['endereco']}'),
           ],
           if (widget.usuario['role'] == 'cuidador' &&
               detalhes['cuidador'] != null) ...[
-            Text('CPF: ${detalhes['cuidador']['cpf']??''}'),
-            Text('Contato: ${detalhes['cuidador']['tel']??''}'),
-            Text('Endereço: ${detalhes['cuidador']['endereco']??''}'),
+            Text('CPF: ${detalhes['cuidador']['cpf'] ?? ''}'),
+            Text('Contato: ${detalhes['cuidador']['tel'] ?? ''}'),
+            Text('Endereço: ${detalhes['cuidador']['endereco'] ?? ''}'),
           ],
         ],
       ),

@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -28,7 +30,7 @@ class _CriarRelatoriosState extends State<CriarRelatorio> {
   final observacoesController = TextEditingController();
 
   Future<void> criarRelatorio() async {
-    final url = Uri.parse('http://localhost:5000/relatorios_diarios/criar');
+    final url = Uri.parse('$baseUrl/relatorios_diarios/criar');
 
     final dados = {
       'paciente_id': widget.pacienteId,
@@ -74,14 +76,13 @@ class _CriarRelatoriosState extends State<CriarRelatorio> {
             ),
           ),
         );
-        
+
         alimentacaoController.clear();
         higieneController.clear();
         pressaoController.clear();
         glicemiaController.clear();
         temperaturaController.clear();
         observacoesController.clear();
-
       }
     } catch (erro) {
       debugPrint('erro: $erro');
@@ -93,6 +94,7 @@ class _CriarRelatoriosState extends State<CriarRelatorio> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Registrar relatório do paciente: ${widget.pacienteNome}'),
+        actions: [LogoutButton()],
       ),
 
       body: ListView(

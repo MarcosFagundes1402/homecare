@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'package:app/api.dart';
+import 'package:app/logout_button.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 
@@ -35,7 +37,7 @@ class _RegistrarAdministracaoState extends State<RegistrarAdministracao> {
 
   Future<void> buscarMedicamentos() async {
     final url = Uri.parse(
-      'http://localhost:5000/medicamentos/consultar-paciente/${widget.pacienteId}',
+      '$Base64Codec/medicamentos/consultar-paciente/${widget.pacienteId}',
     );
 
     try {
@@ -61,16 +63,13 @@ class _RegistrarAdministracaoState extends State<RegistrarAdministracao> {
               : '';
         });
       }
-
     } catch (erro) {
       debugPrint('erro: $erro');
     }
   }
 
   Future<void> registrarAdministracao() async {
-    final url = Uri.parse(
-      'http://localhost:5000/administracao_medicamentos/criar',
-    );
+    final url = Uri.parse('$baseUrl/administracao_medicamentos/criar');
 
     final dados = {
       'medicamento_id': medicamentoSelecionado,
@@ -142,6 +141,7 @@ class _RegistrarAdministracaoState extends State<RegistrarAdministracao> {
         title: Text(
           'Registrar Administração do paciente: ${widget.pacienteNome}',
         ),
+        actions: [LogoutButton()],
       ),
 
       body: medicamentos.isEmpty
@@ -179,8 +179,8 @@ class _RegistrarAdministracaoState extends State<RegistrarAdministracao> {
 
                       setState(() {
                         medicamentoSelecionado = valor;
-                        dosagemController.text = 
-                        medicamento['dosagem'].toString();
+                        dosagemController.text = medicamento['dosagem']
+                            .toString();
                       });
                     },
                   ),
