@@ -38,7 +38,7 @@ class _PacienteHomeState extends State<PacienteHome> {
         url,
         headers: {
           'Authorization': 'Bearer ${widget.token}',
-          'Contente-Type': 'application/json',
+          'Content-Type': 'application/json',
         },
       );
 
