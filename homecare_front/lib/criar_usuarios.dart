@@ -45,7 +45,7 @@ class _CriarUsuariosState extends State<CriarUsuarios> {
     debugPrint('cliclou 1');
     final url = Uri.parse(
             widget.modoCadastro 
-              ? '$baseUrl/cadastro' 
+              ? '$baseUrl/usuarios/cadastro' 
               : '$baseUrl/usuarios/criar',
     );
 

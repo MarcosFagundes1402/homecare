@@ -313,11 +313,8 @@ def desativar_usuario(id):
         conexao.close()
 
 # CRIAR USUARIO
-@usuario_bp.route("/cadastro", methods=["POST"])
+@usuario_bp.route("/usuarios/cadastro", methods=["POST"])
 def cadastro():
-    if request.method == "OPTIONS":
-        return "", 204
-    
     print('chegou em cadastro')
     dados = request.get_json()
 
