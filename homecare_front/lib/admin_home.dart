@@ -1,6 +1,7 @@
 import 'package:app/consultar_administra%C3%A7%C3%B5es.dart';
 import 'package:app/consultar_madicamentos.dart';
 import 'package:app/consultar_medicamento_individual.dart';
+import 'package:app/consultar_relatorio.dart';
 import 'package:app/criar_medicamentos.dart';
 import 'package:app/criar_usuarios.dart';
 import 'package:app/criar_vinculos_screen.dart';
@@ -175,10 +176,9 @@ class _AdminHomeState extends State<AdminHome> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ConsultarAdministracoes(
-                          token: widget.token
-                          ),
-                      )
+                        builder: (context) =>
+                            ConsultarAdministracoes(token: widget.token),
+                      ),
                     );
                   },
                 ),
@@ -196,7 +196,17 @@ class _AdminHomeState extends State<AdminHome> {
               children: [
                 ListTile(
                   title: const Text('Consultar histórico'),
-                  onTap: () {},
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ConsultarRelatorio(
+                          token: widget.token
+                        )
+                        ,
+                      )
+                    );
+                  },
                 ),
               ],
             ),
