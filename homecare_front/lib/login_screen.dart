@@ -4,6 +4,7 @@ import 'package:app/forgot_password_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:app/home_screen.dart';
+
 import 'api.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -22,6 +23,9 @@ class _LoginScreenState extends State<LoginScreen> {
   bool mostrarSenha = false;
 
   Future<void> fazerLogin() async {
+    
+    FocusScope.of(context).unfocus();
+
     final email = emailController.text.trim().toLowerCase();
     final senha = senhaController.text;
 
@@ -100,7 +104,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 controller: senhaController,
                 focusNode: senhaFocus,
                 obscureText: !mostrarSenha,
-                
+
                 onSubmitted: (value) {
                   fazerLogin();
                 },
