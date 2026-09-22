@@ -40,10 +40,17 @@ class _CuidadorHomeState extends State<CuidadorHome> {
       if (response.statusCode == 200) {
         final dados = jsonDecode(response.body);
 
+        debugPrint('BODY PACIENTES: ${response.body}');
+        debugPrint('TIPO: ${dados.runtimeType}');
+
         if (!mounted) return;
 
         setState(() {
-          pacientes = dados;
+          if (dados is List) {
+            pacientes = dados;
+          } else {
+            pacientes = [];
+          }
         });
       }
     } catch (erro) {
