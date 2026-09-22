@@ -37,7 +37,7 @@ class _RegistrarAdministracaoState extends State<RegistrarAdministracao> {
 
   Future<void> buscarMedicamentos() async {
     final url = Uri.parse(
-      '$Base64Codec/medicamentos/consultar-paciente/${widget.pacienteId}',
+      '$baseUrl/medicamentos/consultar-paciente/${widget.pacienteId}',
     );
 
     try {
