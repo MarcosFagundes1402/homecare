@@ -271,9 +271,7 @@ def meus_pacientes():
         pacientes = cursor.fetchall()
 
         if not pacientes:
-            return jsonify({
-                "erro": "Você não possui pacientes vinculados."
-            }), 200
+            return jsonify([]), 200
 
         lista = [dict(paciente) for paciente in pacientes]
 
