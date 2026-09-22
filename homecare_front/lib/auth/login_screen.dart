@@ -39,23 +39,24 @@ class _LoginScreenState extends State<LoginScreen> {
         body: jsonEncode({'email': email, 'senha': senha}),
       );
 
+      debugPrint('STATUS LOGIN: ${response.statusCode}');
+      debugPrint('BODY LOGIN: ${response.body}');
+
       if (!mounted) return;
 
-      final dados = jsonDecode(response.body);
+      // LOGIN FALHOU
+      if (response.statusCode != 200) {
+        String mensagem = 'E-mail ou senha inválidos';
 
-      if (response.statusCode == 200) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => HomeScreen(
-              nome: dados['usuario']['nome'],
-              role: dados['usuario']['role'],
-              token: dados['token'],
-            ),
-          ),
-        );
-      } else {
-        if (!mounted) return;
+        try {
+          final erro = jsonDecode(response.body);
+
+          if (erro is Map && erro['erro'] != null) {
+            mensagem = erro['erro'].toString();
+          }
+        } catch (_) {
+          // mantém mensagem padrão
+        }
 
         senhaController.clear();
 
@@ -65,16 +66,32 @@ class _LoginScreenState extends State<LoginScreen> {
 
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
-          ..showSnackBar(
-            SnackBar(content: Text(dados['erro'] ?? 'Erro ao fazer login')),
-          );
-        return;
+          ..showSnackBar(SnackBar(content: Text(mensagem)));
+
+        return; // MUITO IMPORTANTE
       }
+
+      // SÓ CHEGA AQUI COM STATUS 200
+      final dados = jsonDecode(response.body);
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomeScreen(
+            nome: dados['usuario']['nome'],
+            role: dados['usuario']['role'],
+            token: dados['token'],
+          ),
+        ),
+      );
     } catch (erro) {
+      debugPrint('ERRO LOGIN: $erro');
+
       if (!mounted) return;
 
       ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text('Erro ao conectar: $erro')));
+        ..hideCurrentSnackBar()
+        ..showSnackBar(SnackBar(content: Text('Erro ao conectar: $erro')));
     }
   }
 
@@ -254,7 +271,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         fit: BoxFit.cover,
                       ),
                     ),
-                    )
+                  ),
                 ],
               ),
             ),
