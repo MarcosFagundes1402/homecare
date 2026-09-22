@@ -40,9 +40,6 @@ class _CuidadorHomeState extends State<CuidadorHome> {
       if (response.statusCode == 200) {
         final dados = jsonDecode(response.body);
 
-        debugPrint('BODY PACIENTES: ${response.body}');
-        debugPrint('TIPO: ${dados.runtimeType}');
-
         if (!mounted) return;
 
         setState(() {
@@ -102,6 +99,19 @@ class _CuidadorHomeState extends State<CuidadorHome> {
                       ),
 
                       const SizedBox(height: 10),
+
+                      if (pacientes.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 20),
+                        child: Text(
+                          'Nenhum paciente vinculado.',
+                          textAlign: TextAlign.center,
+                          style:  TextStyle(
+                            color: Colors.grey,
+                            fontSize: 30,
+                          ),
+                        ),
+                      ),
 
                       ...pacientesVisiveis.map((pacientes) {
                         return ListTile(
