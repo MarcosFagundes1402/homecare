@@ -6,8 +6,10 @@ from utils import (
     roles_required,
     buscar_usuario_por_id,
     vinculo_cp,
-    erro_role,
-    buscar_role
+    error_role,
+    buscar_role,
+    validate_required_fields,
+    validate_non_empty_fields
     )
 
 administration_medications_bp = Blueprint("administracao_medicamentos", __name__)
@@ -29,22 +31,20 @@ def register_administration():
             }), 400
 
         #CAMPOS OBRIGATÓRIOS 
-        allowed_fields = [
+        required_fields = [
             "medicamento_id",
             "paciente_id",
             "dosagem_administrada",
         ]
 
-        for field in allowed_fields:
-            if (
-                field not in data
-                or data[field] is None
-                or str(data[field]).strip() == ""
-            ):
-                return jsonify({
-                    "erro": f"O campo '{field}' é obrigatório."
-                }), 400
-            
+        # VALIDA OS CAMPOS OBRIGATORIOS
+        error = validate_required_fields(data, required_fields)
+
+        if error:
+            return jsonify({
+                "erro": error
+            }), 400
+
         #PEGA O ID DO USUÁRIO LOGADO
         user_id = int(get_jwt_identity())
 
@@ -114,6 +114,7 @@ def register_administration():
             }), 409
 
         status = data.get("status", "ativo")
+
         #REGISTRAR A ADMINISTRAÇÃO DO MEDICAMENTO
         cursor.execute("""
             INSERT INTO administracao_medicamentos(
@@ -132,7 +133,7 @@ def register_administration():
             data["paciente_id"],
             user_id,
             data.get("horario_previsto"),
-            managed_schedule,
+            administration_time,
             data["dosagem_administrada"],
             status,
             data.get("obs")
@@ -149,7 +150,7 @@ def register_administration():
                 "id": administration_id,
                 "dosagem_administrada": data["dosagem_administrada"],
                 "horario_previsto": data.get("horario_previsto"),
-                "horario_administrado": managed_schedule,
+                "horario_administrado": administration_time,
                 "obs": data.get("obs")
             },
 
@@ -286,7 +287,7 @@ def my_history():
         patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
 
         if error:
-            return erro_role(error, role_name, patient)
+            return error_role(error, role_name, patient)
 
         #BUSCAR AS ADMINISTRACOES DO PACIENTE
         cursor.execute("""
@@ -531,34 +532,36 @@ def edit_administration(administration_id):
                 }), 403
 
         #CAMPOS QUE PODEM SER EDITADOS
-        campos_permitidos = [
+        required_fields = [
             "dosagem_administrada",
             "status",
             "obs"
         ]
 
         #VERIFICA SE FOI ENVIADO ALGUM CAMPO NAO PERMITIDO
-        for field in data:
-            if field not in campos_permitidos:
-                return jsonify({
-                    "erro": f"O campo '{field}' não pode ser editado."
-                }), 400
+        error = validate_required_fields(data, required_fields)
+
+        if error:
+            return jsonify({
+                "erro": error
+            }), 400
 
         allowed_fields = [
             "dosagem_administrada",
             "status"
         ]
 
-        for field in allowed_fields:
-            if field in data and (data[field] is None or data[field] == ""):
-                return jsonify({
-                    "erro": f"O campo '{field}' não pode ser vazio."
-                }), 400
+        error = validate_non_empty_fields(data, allowed_fields)
+
+        if error:
+            return jsonify({
+                "erro": error
+            }), 400
 
         fields = []
         values = []
 
-        for field in campos_permitidos:
+        for field in required_fields:
             if field in data:
                 fields.append(f"{field} = ?")
                 values.append(data[field])

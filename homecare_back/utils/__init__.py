@@ -8,4 +8,4 @@ from .consultas import(
 
 from .permissoes import roles_required
 
-from .respostas import erro_role
+from .response import erro_role

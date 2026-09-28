@@ -5,8 +5,8 @@ import sqlite3
 from utils import (
     roles_required,
     buscar_role,
-    erro_role,
-    cuidador_status
+    error_role,
+    cuidador_status,
     )
 
 cuidadores_bp = Blueprint("cuidadores", __name__)
@@ -15,40 +15,56 @@ cuidadores_bp = Blueprint("cuidadores", __name__)
 @cuidadores_bp.route("/cuidadores/consultar", methods=['GET'])
 @jwt_required()
 @roles_required("admin")
-def mostrar_cuidadores():
-    conexao = None
+def list_caregivers():
+    connection = None
 
     try:
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
-        cursor.execute("SELECT * FROM cuidadores")
+        cursor.execute("""
+            SELECT
+                id,
+                nome,
+                cpf,
+                data_nascimento,
+                tel,
+                endereco,
+                obs,
+                status,
+            FROM cuidadores
+        """)
 
-        cuidadores = cursor.fetchall()
-        lista_cuidadores = [dict(cuidador) for cuidador in cuidadores]
+        caregivers = cursor.fetchall()
+        result = [dict(caregiver) for caregiver in caregivers]
 
-        return jsonify(lista_cuidadores), 200
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({
+            "erro": str(e)
+        }), 500
     
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
 
 #CONSULTANDO CUIDADORES POR ID
 @cuidadores_bp.route("/cuidadores/consultar/<int:id>", methods=['GET'])
 @jwt_required()
 @roles_required("admin")
-def consultar_cuidador_id(id):
-    conexao = None
+def get_caregiver_by_id(caregiver_id):
+    connection = None
 
     try:
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
         #VALIDA SE O ID PERTENCE A UM CUIDADOR
-        cuidador, erro, role_nome = buscar_role(cursor, id, "cuidador")
+        caregiver, error, role_name = buscar_role(cursor, caregiver_id, "cuidador")
 
-        if erro:
-            return erro_role(erro, role_nome, cuidador)
+        if error:
+            return error_role(error, role_name, caregiver)
 
         #BUSCAR OS DADOS NO CUIDADOR
         cursor.execute("""
@@ -62,25 +78,25 @@ def consultar_cuidador_id(id):
                 status
             FROM cuidadores
             WHERE id = ?
-        """, (id,))
+        """, (caregiver_id,))
 
-        dados_cuidador = cursor.fetchone()
+        caregiver_data = cursor.fetchone()
 
-        if not dados_cuidador:
+        if not caregiver_data:
             return jsonify({
                 "erro": "Cuidador não encontrado."
             }), 404
 
         return jsonify({
             "cuidador": {
-                "id": cuidador["id"],
-                "nome": cuidador["nome"],
-                "cpf": dados_cuidador["cpf"],
-                "data_nascimento": dados_cuidador["data_nascimento"],
-                "tel": dados_cuidador["tel"],
-                "endereco": dados_cuidador["endereco"],
-                "obs": dados_cuidador["obs"],
-                "status": dados_cuidador["status"]
+                "id": caregiver["id"],
+                "nome": caregiver["nome"],
+                "cpf": caregiver_data["cpf"],
+                "data_nascimento": caregiver_data["data_nascimento"],
+                "tel": caregiver_data["tel"],
+                "endereco": caregiver_data["endereco"],
+                "obs": caregiver_data["obs"],
+                "status": caregiver_data["status"]
             }
         }), 200
 
@@ -90,35 +106,35 @@ def consultar_cuidador_id(id):
         }), 500
 
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
 
 #EDITAR CUIDADOR 
 @cuidadores_bp.route("/cuidadores/editar/<int:id>", methods=['PATCH'])
 @jwt_required()
 @roles_required("admin")
-def editar_cuidador(id):
-    conexao = None
+def edit_caregiver(caregiver_id):
+    connection = None
 
     try:
-        dados = request.get_json()
+        data = request.get_json()
 
-        if not dados:
+        if not data:
             return jsonify({
                 "erro": "Dados não encontrados."
             }), 400
 
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
         #VALIDA SE O ID PERTENCE A UM CUIDADOR
-        cuidador, erro, role_nome = buscar_role(cursor, id, "cuidador")
+        caregiver, error, role_name = buscar_role(cursor, caregiver_id, "cuidador")
 
-        if erro:
-            return erro_role(erro, role_nome, cuidador)
+        if error:
+            return error_role(error, role_name, caregiver)
 
         #CAMPOS QUE PODEM SER EDITADOS
-        campos_permitidos = [
+        allowed_fields = [
             "cpf",
             "data_nascimento",
             "tel",
@@ -127,15 +143,15 @@ def editar_cuidador(id):
         ]
 
         #VALIDA O CAMPO NAO PERMITIDOS
-        for campo in dados:
-            if campo not in campos_permitidos:
+        for field in data:
+            if field not in allowed_fields:
                 return jsonify({
-                    "erro": f"O campo '{campo}' não pode ser editado."
+                    "erro": f"O campo '{field}' não pode ser editado."
                 }), 400
 
         #VERIFICA CPF DUPLICADO
-        if "cpf" in dados:
-            if dados["cpf"] is None or dados["cpf"] == "":
+        if "cpf" in data:
+            if data["cpf"] is None or data["cpf"].strip() == "":
                 return jsonify({
                     "erro": "O campo 'cpf' não pode estar vazio."
                 }), 400
@@ -146,94 +162,94 @@ def editar_cuidador(id):
                 WHERE cpf = ?
                 AND id != ?
             """, (
-                dados["cpf"],
-                id
+                data["cpf"],
+                caregiver_id
             ))
 
-            cpf_existente = cursor.fetchone()
+            existing_cpf = cursor.fetchone()
 
-            if cpf_existente:
+            if existing_cpf:
                 return jsonify({
                     "erro": "CPF já cadastrado."
                 }), 400
 
         #MONTA UPDATE DINAMICO
-        campos = []
-        valores = []
+        fields = []
+        values = []
 
-        for campo in campos_permitidos:
-            if campo in dados:
-                campos.append(f"{campo} = ?")
-                valores.append(dados[campo])
+        for field in allowed_fields:
+            if field in data:
+                fields.append(f"{field} = ?")
+                values.append(data[field])
 
-        if not campos:
+        if not fields:
             return jsonify({
                 "erro": "Nenhum campo válido foi enviado para edição."
             }), 400
 
-        valores.append(id)
+        values.append(caregiver_id)
 
         #ATUALIZAR CUIDADOR
         cursor.execute(f"""
             UPDATE cuidadores
-            SET {", ".join(campos)}
+            SET {", ".join(fields)}
             WHERE id = ?
-        """, valores)
+        """, values)
 
-        conexao.commit()
+        connection.commit()
 
         return jsonify({
             "msg": "Cuidador atualizado com sucesso.",
-            "cuidador_id": id,
-            "campos_atualizados": dados
+            "cuidador_id": caregiver_id,
+            "campos_atualizados": data
         }), 200
 
     except sqlite3.IntegrityError:
-        if conexao:
-            conexao.rollback()
+        if connection:
+            connection.rollback()
 
         return jsonify({
             "erro": "CPF já cadastrado."
         }), 400
 
     except Exception as e:
-        if conexao:
-            conexao.rollback()
+        if connection:
+            connection.rollback()
 
         return jsonify({
             "erro": str(e)
         }), 500
 
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
 
 #DESATIVAR CUIDADOR
 @cuidadores_bp.route("/cuidadores/desativar/<int:id>", methods=['DELETE'])
 @jwt_required()
 @roles_required("admin")
-def excluir_cuidador(id):
-    conexao = None
+def disable_caregiver(caregiver_id):
+    connection = None
 
     try:
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
         #VALIDA SE O ID PERTENCE A UM CUIDADOR
-        cuidador, erro, role_nome = buscar_role(cursor, id, "cuidador")
+        caregiver, error, role_name = buscar_role(cursor, caregiver_id, "cuidador")
 
-        if erro:
-            return erro_role(erro, role_nome, cuidador)
+        if error:
+            return error_role(error, role_name, caregiver)
 
         #VERIFICA STATUS DO CUIDADOR
-        cuidador_cadastrado = cuidador_status(cursor, id)
+        caregiver_registered = cuidador_status(cursor, caregiver_id)
 
-        if not cuidador_cadastrado:
+        if not caregiver_registered:
             return jsonify({
                 "erro": "Cuidador não encontrado."
             }), 404
 
-        if cuidador_cadastrado["status"] == "inativo":
+        if caregiver_registered["status"] == "inativo":
             return jsonify({
                 "erro": "Cuidador já inativo."
             }), 400
@@ -243,28 +259,28 @@ def excluir_cuidador(id):
             UPDATE cuidadores
             SET status = 'inativo'
             WHERE id = ?
-        """, (id,))
+        """, (caregiver_id,))
 
-        conexao.commit()
+        connection.commit()
 
         return jsonify({
             "msg": "Cuidador desativado com sucesso.",
 
             "cuidador": {
-                "id": cuidador["id"],
-                "nome": cuidador["nome"],
+                "id": caregiver["id"],
+                "nome": caregiver["nome"],
                 "status": "inativo"
             }
         }), 200
 
     except Exception as e:
-        if conexao:
-            conexao.rollback()
+        if connection:
+            connection.rollback()
 
         return jsonify({
             "erro": str(e)
         }), 500
 
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
