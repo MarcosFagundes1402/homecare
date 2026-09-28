@@ -1,9 +1,9 @@
 from connect import connect
 
 
-def tabela_usuarios():
-    conexao = connect()
-    cursor = conexao.cursor()
+def create_users_table():
+    connection = connect()
+    cursor = connection.cursor()
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS usuarios(
@@ -17,14 +17,14 @@ def tabela_usuarios():
 
     print("Tabela de usuário criado com sucesso.")
 
-    conexao.commit()
+    connection.commit()
     cursor.close()
-    conexao.close()
+    connection.close()
 
-def tabela_paciente():
+def create_patients_table():
 
-    conexao = connect()
-    cursor = conexao.cursor()
+    connection = connect()
+    cursor = connection.cursor()
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS pacientes(
@@ -44,14 +44,15 @@ def tabela_paciente():
 
     print("Tabela pacientes criada com sucesso")
 
-    conexao.commit()
+    connection.commit()
     cursor.close()
-    conexao.close()
+    connection.close()
 
-def tabela_cuidadores():
 
-    conexao = connect()
-    cursor = conexao.cursor()
+def create_caregivers_table():
+
+    connection = connect()
+    cursor = connection.cursor()
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cuidadores(
@@ -62,24 +63,25 @@ def tabela_cuidadores():
             tel  TEXT,
             endereco TEXT,
             obs TEXT,
-            status TEXT,
+            status TEXT DEFAULT 'ativo',
 
             FOREIGN KEY(id)
                 REFERENCES usuarios(id)
         )
     """)
 
-    conexao.commit()
+    connection.commit()
 
     print("Tabela cuidadores criada com sucesso")
 
     cursor.close()
-    conexao.close()
+    connection.close()
 
-def tabela_cuidadores_pacientes():
 
-    conexao = connect()
-    cursor = conexao.cursor()
+def create_caregiver_patient_table():
+
+    connection = connect()
+    cursor = connection.cursor()
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS cuidadores_pacientes(
@@ -99,18 +101,18 @@ def tabela_cuidadores_pacientes():
 
     print("Tabela cuidadores_pacientes criada com sucesso")
 
-    conexao.commit()
+    connection.commit()
     cursor.close()
-    conexao.close()
+    connection.close()
 
-def tabela_medicamentos():
-    conexao = connect()
-    cursor = conexao.cursor()
+def create_medications_table():
+    connection = connect()
+    cursor = connection.cursor()
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS medicamentos(
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            paciente_id INTERGER NOT NULL,
+            paciente_id INTEGER NOT NULL,
             nome TEXT NOT NULL,
             dosagem TEXT,
             horario TEXT,
@@ -121,12 +123,13 @@ def tabela_medicamentos():
 
     print("Tabela de medicamentos criado com sucesso.")
     
-    conexao.commit()
-    conexao.close()
+    connection.commit()
+    cursor.close()
+    connection.close()
 
-def tabela_administracao_medicamentos():
-    conexao = connect()
-    cursor = conexao.cursor()
+def create_medication_administrations_table():
+    connection = connect()
+    cursor = connection.cursor()
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS administracao_medicamentos(
@@ -148,12 +151,13 @@ def tabela_administracao_medicamentos():
 
     print("Tabela administração e medicamentos criado com sucesso.")
 
-    conexao.commit()
-    conexao.close()
+    connection.commit()
+    cursor.close()
+    connection.close()
 
-def tabela_relatorios_diarios():
-    conexao = connect()
-    cursor = conexao.cursor()
+def create_daily_reports_table():
+    connection = connect()
+    cursor = connection.cursor()
 
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS relatorios_diarios(
@@ -180,15 +184,15 @@ def tabela_relatorios_diarios():
 
     print("Tabela de relatorio criada com sucesso!")
 
-    conexao.commit()
-    conexao.close()
+    connection.commit()
+    cursor.close()
+    connection.close()
 
 
-
-tabela_usuarios()
-tabela_paciente()
-tabela_cuidadores()
-tabela_cuidadores_pacientes()
-tabela_medicamentos()
-tabela_administracao_medicamentos()
-tabela_relatorios_diarios()
+create_users_table()
+create_patients_table()
+create_caregivers_table()
+create_caregiver_patient_table()
+create_medications_table()
+create_medication_administrations_table()
+create_daily_reports_table()
