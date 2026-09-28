@@ -11,77 +11,77 @@ from utils import (
     ) 
 
 
-cuidadores_pacientes_bp = Blueprint("cuidadores_pacientes", __name__)
+caregiver_patient_bp = Blueprint("cuidadores_pacientes", __name__)
 
 # CRIA O VINCULO ENTRE CUIDADOR E PACIENTE
-@cuidadores_pacientes_bp.route("/cuidadores_pacientes/criar-vinculo", methods=["POST"])
+@caregiver_patient_bp.route("/cuidadores_pacientes/criar-vinculo", methods=["POST"])
 @jwt_required()
 @roles_required("admin")
-def criar_vinculo():
+def create_bond():
 
-    conexao = None
+    connection = None
 
     try:
-        dados = request.get_json()
+        data = request.get_json()
 
-        if not dados:
+        if not data:
             return jsonify({
                 "erro": "Dados não encontrados."
             }), 400
 
-        if "cuidador_id" not in dados or "paciente_id" not in dados:
+        if "cuidador_id" not in data or "paciente_id" not in data:
             return jsonify({
                 "erro": "cuidador_id e paciente_id são obrigatórios."
             }), 400
 
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
         # VERIFICA SE O ID INFORMADO COMO CUIDADOR EXISTE
-        cuidador, erro, role_nome = buscar_role(cursor, dados["cuidador_id"], "cuidador")
+        caregiver, error, role_name = buscar_role(cursor, data["cuidador_id"], "caregiver")
 
         # RETORNA ERRO SE O USUARIO NAO EXISTIR OU A ROLE FOR INVALIDA
-        if erro:
-            return erro_role(erro, role_nome, cuidador)
+        if error:
+            return erro_role(error, role_name, caregiver)
         
         #VERIFICA SE EXISTE NA TABELA CUIDADORES
-        cuidador_cadastrado = cuidador_status(cursor, dados["cuidador_id"])
+        registered_caregiver = cuidador_status(cursor, data["cuidador_id"])
 
-        if not cuidador_cadastrado:
+        if not registered_caregiver:
             return jsonify({
                 "erro": "Cadastro de cuidador não encontrado."
             }), 404
 
-        if cuidador_cadastrado["status"] == "inativo":
+        if registered_caregiver["status"] == "inativo":
             return jsonify({
                 "erro": "Não é possível vincular um cuidador inativo."
             }), 400
         
         # VERIFICA SE O ID INFORMADO COMO PACIENTE EXISTE
-        paciente, erro, role_nome = buscar_role(cursor, dados["paciente_id"], "paciente")
+        patient, error, role_name = buscar_role(cursor, data["paciente_id"], "paciente")
 
         # RETORNA ERRO SE O USUARIO NAO EXISTIR OU A ROLE FOR INVALIDA
-        if erro:
-            return erro_role(erro, role_nome, paciente)
+        if error:
+            return erro_role(error, role_name, patient)
         
 
         #VERIFICA SE EXISTE NA TABELA PACIENTES
-        paciente_cadastrado = paciente_status(cursor, dados["paciente_id"])
+        registered_patient = paciente_status(cursor, data["paciente_id"])
 
-        if not paciente_cadastrado:
+        if not registered_patient:
             return jsonify({
                 "erro": "Cadastro de paciente não encontrado."
             }), 404
 
-        if paciente_cadastrado["status"] == "inativo":
+        if registered_patient["status"] == "inativo":
             return jsonify({
                 "erro":"Não é possível vincular um paciente inativo."
             }), 400
         
         # VERIFICA SE O VINCULO JÁ EXISTE
-        vinculo = vinculo_cp(cursor, dados["cuidador_id"], dados["paciente_id"])
+        existing_link = vinculo_cp(cursor, data["cuidador_id"], data["paciente_id"])
  
-        if vinculo:
+        if existing_link:
             return jsonify({
                 "erro": "Este cuidador já está vinculado a este paciente."
             }), 409
@@ -94,55 +94,55 @@ def criar_vinculo():
             )
             VALUES (?, ?)
         """, (
-            dados["cuidador_id"],
-            dados["paciente_id"]
+            data["cuidador_id"],
+            data["paciente_id"]
         ))
 
-        conexao.commit()
+        connection.commit()
 
         return jsonify({
             "msg": "Vínculo criado com sucesso.",
             "cuidador": {
-                "id": cuidador["id"],
-                "nome": cuidador["nome"]
+                "id": caregiver["id"],
+                "nome": caregiver["nome"]
             },
             "paciente": {
-                "id": paciente["id"],
-                "nome": paciente["nome"]
+                "id": patient["id"],
+                "nome": patient["nome"]
             }
         }), 201
 
     except Exception as e:
-        if conexao:
-            conexao.rollback()
+        if connection:
+            connection.rollback()
 
         return jsonify({
             "erro": str(e)
         }), 500
 
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
 
 
 # MOSTRA OS PACIENTES QUE O CUIDADOR TEM
-@cuidadores_pacientes_bp.route("/cuidadores_pacientes/consultar-cuidador/<int:id>", methods=["GET"])
+@caregiver_patient_bp.route("/cuidadores_pacientes/consultar-cuidador/<int:id>", methods=["GET"])
 @jwt_required()
 @roles_required("admin")
-def listar_pacientes_cuidador(id):
+def list_caregiver_patients(caregiver_id):
 
-    conexao = None
+    connection = None
 
     try:
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
         # VERIFICA SE O ID INFORMADO COMO CUIDADOR EXISTE
-        cuidador, erro, role_nome = buscar_role(cursor, id, "cuidador")
+        caregiver, error, role_name = buscar_role(cursor, caregiver_id, "cuidador")
 
         # RETORNA O ERRO SE A ROLE NAO EXISTIR
-        if erro:
-            return erro_role(erro, role_nome, cuidador)
+        if error:
+            return erro_role(error, role_name, caregiver)
 
    
         # BUSCA OS PACIENTES VINCULADOS
@@ -159,18 +159,16 @@ def listar_pacientes_cuidador(id):
                 JOIN pacientes
                     ON cuidadores_pacientes.paciente_id = pacientes.id
                 WHERE cuidadores_pacientes.cuidador_id = ?
-            """, (id,))
+            """, (caregiver_id,))
 
-        pacientes = cursor.fetchall()
+        patients = cursor.fetchall()
 
-        if not pacientes:
-            return jsonify({
-                "msg": "Este cuidador não possui pacientes vinculados."
-            }), 200
+        if not patients:
+            return jsonify([]), 200
 
-        lista = [dict(paciente) for paciente in pacientes]
+        result = [dict(patient) for patient in patients]
 
-        return jsonify(lista), 200
+        return jsonify(result), 200
 
     except Exception as e:
         return jsonify({
@@ -178,26 +176,26 @@ def listar_pacientes_cuidador(id):
         }), 500
 
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
 
 # MOSTRA QUAIS CUIDADORES CUIDAM DO PACIENTE
-@cuidadores_pacientes_bp.route("/cuidadores_pacientes/consultar-paciente/<int:id>", methods=["GET"])
+@caregiver_patient_bp.route("/cuidadores_pacientes/consultar-paciente/<int:id>", methods=["GET"])
 @jwt_required()
 @roles_required("admin")
-def listar_cuidadores_paciente(id):
-    conexao = None
+def list_patient_caregivers(patient_id):
+    connection = None
 
     try:
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
         # VERIFICA SE O ID INFORMADO COMO PACIENTE EXISTE
-        paciente, erro, role_nome = buscar_role(cursor, id, "paciente")
+        patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
 
         # RETORNA O ERRO SE A ROLE NAO EXISTIR
-        if erro:
-            return erro_role(erro, role_nome, paciente)
+        if error:
+            return erro_role(error, role_name, patient)
 
         # BUSCA OS CUIDADORES VINCULADOS
         cursor.execute("""
@@ -217,18 +215,16 @@ def listar_cuidadores_paciente(id):
                 ON cuidadores_pacientes.cuidador_id = cuidadores.id
 
             WHERE cuidadores_pacientes.paciente_id = ?
-        """, (id,))
+        """, (patient_id,))
 
-        cuidadores = cursor.fetchall()
+        caregivers = cursor.fetchall()
 
-        if not cuidadores:
-            return jsonify({
-                "msg": "Este paciente não possui cuidadores vinculados."
-            }), 200
+        if not caregivers:
+            return jsonify([]), 200
 
-        lista = [dict(cuidador) for cuidador in cuidadores]
+        result = [dict(caregiver) for caregiver in caregivers]
 
-        return jsonify(lista), 200
+        return jsonify(result), 200
 
     except Exception as e:
         return jsonify({
@@ -236,21 +232,21 @@ def listar_cuidadores_paciente(id):
         }), 500
 
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
 
 #CUIDADOR CONSULTA OS PRÓPRIOS PACIENTES
-@cuidadores_pacientes_bp.route("/cuidadores_pacientes/meus-pacientes", methods=['GET'])
+@caregiver_patient_bp.route("/cuidadores_pacientes/meus-pacientes", methods=['GET'])
 @jwt_required()
 @roles_required("cuidador")
-def meus_pacientes():
-    conexao = None
+def my_patients():
+    connection = None
 
     try:
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
-        cuidador_id = get_jwt_identity()
+        caregiver_id = int(get_jwt_identity())
 
         cursor.execute("""
             SELECT 
@@ -266,16 +262,16 @@ def meus_pacientes():
             JOIN pacientes
                 ON cuidadores_pacientes.paciente_id = pacientes.id
             WHERE cuidadores_pacientes.cuidador_id = ?
-        """, (cuidador_id,))
+        """, (caregiver_id,))
 
-        pacientes = cursor.fetchall()
+        patients = cursor.fetchall()
 
-        if not pacientes:
+        if not patients:
             return jsonify([]), 200
 
-        lista = [dict(paciente) for paciente in pacientes]
+        result = [dict(patient) for patient in patients]
 
-        return jsonify(lista), 200
+        return jsonify(result), 200
     
     except Exception as e:
         return jsonify({
@@ -283,21 +279,21 @@ def meus_pacientes():
         }), 500
 
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
 
 #PACIENTE CONSULTA OS PROPRIOS CUIDADORES
-@cuidadores_pacientes_bp.route("/cuidadores_pacientes/meus-cuidadores", methods=['GET'])
+@caregiver_patient_bp.route("/cuidadores_pacientes/meus-cuidadores", methods=['GET'])
 @jwt_required()
 @roles_required("paciente")
-def meus_cuidadores():
-    conexao = None
+def my_caregivers():
+    connection = None
 
     try:
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
-        paciente_id = get_jwt_identity()
+        patient_id = int(get_jwt_identity())
 
         cursor.execute("""
             SELECT 
@@ -315,18 +311,16 @@ def meus_cuidadores():
             JOIN cuidadores
                 ON cuidadores_pacientes.cuidador_id = cuidadores.id
             WHERE cuidadores_pacientes.paciente_id = ?
-        """, (paciente_id,))
+        """, (patient_id,))
 
-        cuidadores = cursor.fetchall()
+        caregivers = cursor.fetchall()
 
-        if not cuidadores:
-            return jsonify({
-                "erro": "Você não possui cuidadores vinculados."
-            }), 200
+        if not caregivers:
+            return jsonify([]), 200
 
-        lista = [dict(cuidador) for cuidador in cuidadores]
+        result = [dict(caregiver) for caregiver in caregivers]
 
-        return jsonify(lista), 200
+        return jsonify(result), 200
 
     except Exception as e:
         return jsonify({
@@ -334,86 +328,50 @@ def meus_cuidadores():
         }), 500
 
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
 
 # REMOVE O VINCULO ENTRE CUIDADOR E PACIENTE
-@cuidadores_pacientes_bp.route("/cuidadores_pacientes/desativar-vinculo", methods=["DELETE"])
+@caregiver_patient_bp.route("/cuidadores_pacientes/desativar-vinculo", methods=["DELETE"])
 @jwt_required()
 @roles_required("admin")
-def remover_vinculo():
+def remove_link():
 
-    conexao = None
+    connection = None
 
     try:
-        dados = request.get_json()
+        data = request.get_json()
 
         #VERIFICA SE FORAM ENVIADOS DADOS
-        if not dados:
+        if not data:
             return jsonify({
                 "erro": "Dados não encontrados."
             }), 400
 
         #VERIFICA SE OS IDS FORAM INFORMADOS
-        if not dados.get("cuidador_id") or not dados.get("paciente_id"):
+        if not data.get("cuidador_id") or not data.get("paciente_id"):
             return jsonify({
                 "erro": "cuidador_id e paciente_id são obrigatórios."
             }), 400
         
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
         # BUSCA CUIDADOR E PACIENTE
-        cursor.execute("""
-            SELECT id, nome, role
-            FROM usuarios
-            WHERE id IN (?, ?)
-        """,(
-            dados["cuidador_id"],
-            dados["paciente_id"]
-        ))
+        caregiver, error, role_name = buscar_role(cursor, data["cuidador_id"], "cuidador")
 
-        usuarios = cursor.fetchall()
-
-        cuidador = None
-        paciente = None
-
-        #IDENTIFICA QUAL REGISTRO É CUIDADOR/PACIENTE
-        for usuario in usuarios:
-            if usuario["id"] == dados["cuidador_id"]:
-                cuidador = usuario
-
-            if usuario["id"] == dados["paciente_id"]:
-                paciente = usuario
-
-        #VERIFICA SE O CUIDADOR EXISTE
-        if not cuidador:
-            return jsonify({
-                "erro": "Cuidador não encontrado."
-            }), 404
-
-        #VERIFICA SE REALMENTE É CUIDADOR
-        if cuidador["role"].lower() != "cuidador":
-            return jsonify({
-                "erro": "O cuidador_id informado não pertence a um cuidador."
-            }), 400
+        if error:
+            return erro_role(error, role_name, caregiver)
         
-        #VERIFICA SE O PACIENTE EXISTE
-        if not paciente:
-            return jsonify({
-                "erro": "Paciente não encontrado."
-            }), 404
-        
-        # VERIFICA SE O ID É REALMENTE DE PACIENTE
-        if paciente["role"].lower() != "paciente":
-            return jsonify({
-                "erro": "O paciente_id não pertence a um paciente."
-            }), 400
+        patient, error, role_name = buscar_role(cursor, data["paciente_id"], "paciente")
+
+        if error:
+            return erro_role(error, role_name, patient)
 
         # VERIFICA SE O VINCULO EXISTE
-        vinculo = vinculo_cp(cursor, dados["cuidador_id"], dados["paciente_id"])
+        existing_link = vinculo_cp(cursor, data["cuidador_id"], data["paciente_id"])
 
-        if not vinculo:
+        if not existing_link:
             return jsonify({
                 "erro": "Vínculo não encontrado."
             }), 404
@@ -424,35 +382,35 @@ def remover_vinculo():
             WHERE cuidador_id = ?
             AND paciente_id = ?
         """, (
-            dados["cuidador_id"],
-            dados["paciente_id"]
+            data["cuidador_id"],
+            data["paciente_id"]
         ))
 
-        conexao.commit()
+        connection.commit()
 
         return jsonify({
             "msg": "Vínculo removido com sucesso.",
 
             "vinculo_removido": {
                 "cuidador": {
-                    "id": cuidador["id"],
-                    "nome": cuidador["nome"]
+                    "id": caregiver["id"],
+                    "nome": caregiver["nome"]
                 },
                 "paciente": {
-                    "id": paciente["id"],
-                    "nome": paciente["nome"]
+                    "id": patient["id"],
+                    "nome": patient["nome"]
                 }
             }
         }), 200
 
     except Exception as e:
-        if conexao:
-            conexao.rollback()
+        if connection:
+            connection.rollback()
 
         return jsonify({
             "erro": str(e)
         }), 500
 
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
