@@ -2,17 +2,17 @@ from flask import jsonify, request, Blueprint
 from database.connect import connect
 from flask_jwt_extended import jwt_required
 import sqlite3
-from utils import (
-    roles_required,
-    buscar_role,
-    error_role,
-    cuidador_status,
+from utils.permissions import roles_required
+from utils.response import error_role
+from utils.queries import (
+    validate_user_role,
+    caregiver_stats,
     )
 
-cuidadores_bp = Blueprint("cuidadores", __name__)
+caregiver_bp = Blueprint("cuidadores", __name__)
 
 #CONSULTAR TODOS OS CUIDADORES
-@cuidadores_bp.route("/cuidadores/consultar", methods=['GET'])
+@caregiver_bp.route("/cuidadores/consultar", methods=['GET'])
 @jwt_required()
 @roles_required("admin")
 def list_caregivers():
@@ -50,7 +50,7 @@ def list_caregivers():
             connection.close()
 
 #CONSULTANDO CUIDADORES POR ID
-@cuidadores_bp.route("/cuidadores/consultar/<int:id>", methods=['GET'])
+@caregiver_bp.route("/cuidadores/consultar/<int:id>", methods=['GET'])
 @jwt_required()
 @roles_required("admin")
 def get_caregiver_by_id(caregiver_id):
@@ -61,7 +61,7 @@ def get_caregiver_by_id(caregiver_id):
         cursor = connection.cursor()
 
         #VALIDA SE O ID PERTENCE A UM CUIDADOR
-        caregiver, error, role_name = buscar_role(cursor, caregiver_id, "cuidador")
+        caregiver, error, role_name = validate_user_role(cursor, caregiver_id, "cuidador")
 
         if error:
             return error_role(error, role_name, caregiver)
@@ -110,7 +110,7 @@ def get_caregiver_by_id(caregiver_id):
             connection.close()
 
 #EDITAR CUIDADOR 
-@cuidadores_bp.route("/cuidadores/editar/<int:id>", methods=['PATCH'])
+@caregiver_bp.route("/cuidadores/editar/<int:id>", methods=['PATCH'])
 @jwt_required()
 @roles_required("admin")
 def edit_caregiver(caregiver_id):
@@ -128,7 +128,7 @@ def edit_caregiver(caregiver_id):
         cursor = connection.cursor()
 
         #VALIDA SE O ID PERTENCE A UM CUIDADOR
-        caregiver, error, role_name = buscar_role(cursor, caregiver_id, "cuidador")
+        caregiver, error, role_name = validate_user_role(cursor, caregiver_id, "cuidador")
 
         if error:
             return error_role(error, role_name, caregiver)
@@ -225,7 +225,7 @@ def edit_caregiver(caregiver_id):
             connection.close()
 
 #DESATIVAR CUIDADOR
-@cuidadores_bp.route("/cuidadores/desativar/<int:id>", methods=['DELETE'])
+@caregiver_bp.route("/cuidadores/desativar/<int:id>", methods=['DELETE'])
 @jwt_required()
 @roles_required("admin")
 def disable_caregiver(caregiver_id):
@@ -236,13 +236,13 @@ def disable_caregiver(caregiver_id):
         cursor = connection.cursor()
 
         #VALIDA SE O ID PERTENCE A UM CUIDADOR
-        caregiver, error, role_name = buscar_role(cursor, caregiver_id, "cuidador")
+        caregiver, error, role_name = validate_user_role(cursor, caregiver_id, "cuidador")
 
         if error:
             return error_role(error, role_name, caregiver)
 
         #VERIFICA STATUS DO CUIDADOR
-        caregiver_registered = cuidador_status(cursor, caregiver_id)
+        caregiver_registered =caregiver_stats(cursor, caregiver_id)
 
         if not caregiver_registered:
             return jsonify({

@@ -2,12 +2,13 @@ from flask import jsonify, request, Blueprint
 from database.connect import connect
 from flask_jwt_extended import jwt_required
 import sqlite3
+from utils.permissions import roles_required
+from utils.response import validate_non_empty_fields, error_role
+
 from utils import (
-    roles_required,
-    buscar_role,
-    erro_role,
-    paciente_status,
-    validate_non_empty_fields
+    validate_user_role,
+    error_role,
+    patient_stats,
     )
 
 patient_bp = Blueprint("pacientes", __name__)
@@ -64,10 +65,10 @@ def get_patient_by_id(patient_id):
         cursor = connection.cursor()
 
         #VALIDA SE O ID PERTENCE A UM PACIENTE
-        patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
+        patient, error, role_name = validate_user_role(cursor, patient_id, "paciente")
 
         if error:
-            return erro_role(error, role_name, patient)
+            return error_role(error, role_name, patient)
 
         #BUSCA OS DADOS DO PACIENTE
         cursor.execute("""
@@ -133,10 +134,10 @@ def edit_patient(patient_id):
         cursor = connection.cursor()
 
         #VALIDA SE O ID PERTENCE A UM PACIENTE
-        patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
+        patient, error, role_name = validate_user_role(cursor, patient_id, "paciente")
 
         if error:
-            return erro_role(error, role_name, patient)
+            return error_role(error, role_name, patient)
 
         #CAMPOS QUE PODEM SER EDITADOS
         allowed_fields = [
@@ -251,12 +252,12 @@ def disable_patient(patient_id):
         connection = connect()
         cursor = connection.cursor()
 
-        patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
+        patient, error, role_name = validate_user_role(cursor, patient_id, "paciente")
 
         if error:
-            return erro_role(error, role_name, patient)
+            return error_role(error, role_name, patient)
         
-        registered_patient = paciente_status(cursor, patient_id)
+        registered_patient = patient_stats(cursor, patient_id)
 
         if not registered_patient:
             return jsonify({

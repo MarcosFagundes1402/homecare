@@ -2,14 +2,17 @@ from flask import Blueprint, jsonify, request
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
-from utils import (
-    roles_required,
-    buscar_usuario_por_id,
-    buscar_role,
-    erro_role,
-    vinculo_cp,
+from utils.permissions import roles_required
+
+from utils.response import (
     validate_required_fields,
-    validate_non_empty_fields
+    validate_non_empty_fields,
+    error_role
+)
+from utils.queries import (
+    get_user_by_id,
+    validate_user_role,
+    get_caregiver_patient_link,
     )
 
 daily_reports_bp = Blueprint("relatorios_diarios", __name__)
@@ -48,7 +51,7 @@ def create_daily_reports():
         cursor = connection.cursor()
 
         #BUSCAR O USUARIO LOGADO
-        user = buscar_usuario_por_id(cursor, user_id)
+        user = get_user_by_id(cursor, user_id)
 
         if not user:
             return jsonify({
@@ -56,14 +59,14 @@ def create_daily_reports():
             }), 404
 
         #VERIFICA SE O PACIENTE EXISTE
-        patient, error, role_name = buscar_role(cursor, data["paciente_id"], "paciente")
+        patient, error, role_name = validate_user_role(cursor, data["paciente_id"], "paciente")
 
         if error:
-            return erro_role(error, role_name, patient)
+            return error_role(error, role_name, patient)
 
         #SE FOR CUIDADOR, VERIFICA SE ESTÁ VINCULADO AO PACIENTE
         if user["role"].lower() == "cuidador":
-            existing_link = vinculo_cp(cursor, user_id, data["paciente_id"])
+            existing_link = get_caregiver_patient_link(cursor, user_id, data["paciente_id"])
 
             if not existing_link:
                 return jsonify({
@@ -143,7 +146,7 @@ def get_patient_daily_reports(patient_id):
         cursor = connection.cursor()
 
         #BUSCAR USUARIO LOGADO
-        user = buscar_usuario_por_id(cursor, user_id)
+        user = get_user_by_id(cursor, user_id)
 
         if not user:
             return jsonify({
@@ -151,14 +154,14 @@ def get_patient_daily_reports(patient_id):
             }), 404
 
         #VERIFICA SE O PACIENTE EXISTE
-        patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
+        patient, error, role_name = validate_user_role(cursor, patient_id, "paciente")
 
         if error:
-            return erro_role(error, role_name, patient)
+            return error_role(error, role_name, patient)
 
         #VERIFICA VINCULO ENTRE CUIDADOR E PACIENTE
         if user["role"].lower() == "cuidador":
-            existing_link = vinculo_cp(cursor, user_id, patient_id) 
+            existing_link = get_caregiver_patient_link(cursor, user_id, patient_id) 
 
             if not existing_link:
                 return jsonify({
@@ -348,7 +351,7 @@ def edit_daily_report(report_id):
         cursor = connection.cursor()
 
         #BUSCA USUARIO LOGADO
-        user = buscar_usuario_por_id(cursor, user_id)
+        user = get_user_by_id(cursor, user_id)
  
         if not user:
             return jsonify({
@@ -388,7 +391,7 @@ def edit_daily_report(report_id):
                 }), 403
             
             # VERIFICA SE AINDA POSSUI VÍNCULO COM O PACIENTE
-            existing_link = vinculo_cp(cursor, user_id, daily_report["paciente_id"])
+            existing_link = get_caregiver_patient_link(cursor, user_id, daily_report["paciente_id"])
 
             if not existing_link:
                 return jsonify({

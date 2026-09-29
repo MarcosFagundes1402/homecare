@@ -2,14 +2,18 @@ from flask import Blueprint, jsonify, request
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime
-from utils import (
-    roles_required,
-    buscar_usuario_por_id,
-    vinculo_cp,
-    error_role,
-    buscar_role,
+from utils.permissions import roles_required
+
+from utils.response import (
     validate_required_fields,
-    validate_non_empty_fields
+    validate_non_empty_fields,
+    error_role
+)
+
+from utils.queries import (
+    get_user_by_id,
+    get_caregiver_patient_link,
+    validate_user_role,
     )
 
 administration_medications_bp = Blueprint("administracao_medicamentos", __name__)
@@ -52,7 +56,7 @@ def register_administration():
         cursor = connection.cursor()
 
         #VERIFICA QUEM ESTÁ LOGADO
-        user = buscar_usuario_por_id(cursor, user_id)
+        user = get_user_by_id(cursor, user_id)
 
         if not user:
             return jsonify({
@@ -84,7 +88,7 @@ def register_administration():
         #VERIFICA SE O CUIDADOR ESTÁ VINCULADO AO PACIENTE
         if user["role"].lower() == "cuidador":
 
-            bond = vinculo_cp(cursor, user_id, data["paciente_id"])
+            bond = get_caregiver_patient_link(cursor, user_id, data["paciente_id"])
 
             if not bond:
                 return jsonify({
@@ -284,7 +288,7 @@ def my_history():
         cursor = connection.cursor()
 
         #VALIDA O PACIENTE LOGADO
-        patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
+        patient, error, role_name = validate_user_role(cursor, patient_id, "paciente")
 
         if error:
             return error_role(error, role_name, patient)
@@ -495,7 +499,7 @@ def edit_administration(administration_id):
         cursor = connection.cursor()
 
         #BUSCA O USUARIO LOGADO
-        user = buscar_usuario_por_id(cursor, user_id)
+        user = get_user_by_id(cursor, user_id)
 
         if not user:
             return jsonify({
@@ -614,7 +618,7 @@ def disable_administration(administration_id):
         cursor = connection.cursor()
 
         #BUSCAR USUARIO LOGADO
-        user = buscar_usuario_por_id(cursor, user_id)
+        user = get_user_by_id(cursor, user_id)
 
         if not user:
             return jsonify({

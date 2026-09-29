@@ -1,7 +1,7 @@
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
-from routes import registrar_rotas
+from routes import register_routes
 
 app = Flask(__name__)
 
@@ -16,7 +16,7 @@ app.config["JWT_SECRET_KEY"] = "chave_secreta"
 
 jwt = JWTManager(app)
 
-registrar_rotas(app)
+register_routes(app)
 
 if __name__ == "__main__":
     app.run(host="localhost", port=5000, debug=True)

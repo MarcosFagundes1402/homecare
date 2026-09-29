@@ -1,13 +1,13 @@
 from flask import Blueprint, jsonify, request
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from utils import (
-        roles_required,
-        cuidador_status,
-        paciente_status,
-        vinculo_cp,
-        buscar_role,
-        erro_role,
+from utils.permissions import roles_required
+from utils.response import error_role
+from utils.queries import (
+        caregiver_stats,
+        patient_stats,
+        get_caregiver_patient_link,
+        validate_user_role,
     ) 
 
 
@@ -38,14 +38,14 @@ def create_bond():
         cursor = connection.cursor()
 
         # VERIFICA SE O ID INFORMADO COMO CUIDADOR EXISTE
-        caregiver, error, role_name = buscar_role(cursor, data["cuidador_id"], "caregiver")
+        caregiver, error, role_name = validate_user_role(cursor, data["cuidador_id"], "caregiver")
 
         # RETORNA ERRO SE O USUARIO NAO EXISTIR OU A ROLE FOR INVALIDA
         if error:
-            return erro_role(error, role_name, caregiver)
+            return error_role(error, role_name, caregiver)
         
         #VERIFICA SE EXISTE NA TABELA CUIDADORES
-        registered_caregiver = cuidador_status(cursor, data["cuidador_id"])
+        registered_caregiver = caregiver_stats(cursor, data["cuidador_id"])
 
         if not registered_caregiver:
             return jsonify({
@@ -58,15 +58,15 @@ def create_bond():
             }), 400
         
         # VERIFICA SE O ID INFORMADO COMO PACIENTE EXISTE
-        patient, error, role_name = buscar_role(cursor, data["paciente_id"], "paciente")
+        patient, error, role_name = validate_user_role(cursor, data["paciente_id"], "paciente")
 
         # RETORNA ERRO SE O USUARIO NAO EXISTIR OU A ROLE FOR INVALIDA
         if error:
-            return erro_role(error, role_name, patient)
+            return error_role(error, role_name, patient)
         
 
         #VERIFICA SE EXISTE NA TABELA PACIENTES
-        registered_patient = paciente_status(cursor, data["paciente_id"])
+        registered_patient = patient_stats(cursor, data["paciente_id"])
 
         if not registered_patient:
             return jsonify({
@@ -79,7 +79,7 @@ def create_bond():
             }), 400
         
         # VERIFICA SE O VINCULO JÁ EXISTE
-        existing_link = vinculo_cp(cursor, data["cuidador_id"], data["paciente_id"])
+        existing_link = get_caregiver_patient_link(cursor, data["cuidador_id"], data["paciente_id"])
  
         if existing_link:
             return jsonify({
@@ -138,11 +138,11 @@ def list_caregiver_patients(caregiver_id):
         cursor = connection.cursor()
 
         # VERIFICA SE O ID INFORMADO COMO CUIDADOR EXISTE
-        caregiver, error, role_name = buscar_role(cursor, caregiver_id, "cuidador")
+        caregiver, error, role_name = validate_user_role(cursor, caregiver_id, "cuidador")
 
         # RETORNA O ERRO SE A ROLE NAO EXISTIR
         if error:
-            return erro_role(error, role_name, caregiver)
+            return error_role(error, role_name, caregiver)
 
    
         # BUSCA OS PACIENTES VINCULADOS
@@ -191,11 +191,11 @@ def list_patient_caregivers(patient_id):
         cursor = connection.cursor()
 
         # VERIFICA SE O ID INFORMADO COMO PACIENTE EXISTE
-        patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
+        patient, error, role_name = validate_user_role(cursor, patient_id, "paciente")
 
         # RETORNA O ERRO SE A ROLE NAO EXISTIR
         if error:
-            return erro_role(error, role_name, patient)
+            return error_role(error, role_name, patient)
 
         # BUSCA OS CUIDADORES VINCULADOS
         cursor.execute("""
@@ -358,18 +358,18 @@ def remove_link():
         cursor = connection.cursor()
 
         # BUSCA CUIDADOR E PACIENTE
-        caregiver, error, role_name = buscar_role(cursor, data["cuidador_id"], "cuidador")
+        caregiver, error, role_name = validate_user_role(cursor, data["cuidador_id"], "cuidador")
 
         if error:
-            return erro_role(error, role_name, caregiver)
+            return error_role(error, role_name, caregiver)
         
-        patient, error, role_name = buscar_role(cursor, data["paciente_id"], "paciente")
+        patient, error, role_name = validate_user_role(cursor, data["paciente_id"], "paciente")
 
         if error:
-            return erro_role(error, role_name, patient)
+            return error_role(error, role_name, patient)
 
         # VERIFICA SE O VINCULO EXISTE
-        existing_link = vinculo_cp(cursor, data["cuidador_id"], data["paciente_id"])
+        existing_link = get_caregiver_patient_link(cursor, data["cuidador_id"], data["paciente_id"])
 
         if not existing_link:
             return jsonify({

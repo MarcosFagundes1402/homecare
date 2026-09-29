@@ -9,7 +9,7 @@ def get_user_by_id(cursor, user_id):
     return cursor.fetchone()
 
 #BUSCAR STATUS DO CUIDADOR
-def caregiver_status(cursor, user_id):
+def caregiver_stats(cursor, user_id):
     cursor.execute("""
         SELECT id, status
         FROM cuidadores
@@ -19,7 +19,7 @@ def caregiver_status(cursor, user_id):
     return cursor.fetchone()
 
 #BUSCAR STATUS DO PACIENTE
-def patient_status(cursor, user_id):
+def patient_stats(cursor, user_id):
     cursor.execute("""
         SELECT id, status
         FROM pacientes

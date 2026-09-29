@@ -1,11 +1,11 @@
 from .queries import(
-    buscar_usuario_por_id,
-    buscar_role,
-    cuidador_status,
-    paciente_status,
-    vinculo_cp
+    get_user_by_id,
+    validate_user_role,
+    caregiver_stats,
+    patient_stats,
+    get_caregiver_patient_link
 )
 
 from .permissions import roles_required
 
-from .response import erro_role
+from .response import error_role

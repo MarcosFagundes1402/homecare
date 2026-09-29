@@ -1,14 +1,18 @@
 from flask import Blueprint, jsonify, request
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from utils import (
-    roles_required,
-    buscar_role,
-    erro_role,
-    paciente_status,
-    vinculo_cp,
+from utils.permissions import roles_required
+
+from utils.response import (
     validate_required_fields,
-    validate_non_empty_field
+    validate_non_empty_fields,
+    error_role
+    )
+
+from utils.queries import (
+    validate_user_role,
+    patient_stats,
+    get_caregiver_patient_link,
 )
 
 medicines_bp = Blueprint("medicamentos",__name__)
@@ -47,13 +51,13 @@ def create_medicine():
         cursor = connection.cursor()
 
         #VERIFICA SE É PACIENTE
-        patient, error, role_name = buscar_role(cursor, data["paciente_id"], "paciente")
+        patient, error, role_name = validate_user_role(cursor, data["paciente_id"], "paciente")
 
         if error:
-            return erro_role(error, role_name, patient)
+            return error_role(error, role_name, patient)
 
         #VERIFICA STATUS DO PACIENTE
-        registered_patient = paciente_status(cursor, data["paciente_id"])
+        registered_patient = patient_stats(cursor, data["paciente_id"])
 
         if not registered_patient:
             return jsonify({
@@ -219,14 +223,14 @@ def list_patient_medicines(patient_id):
         logged_role = logged_user["role"]
 
         # VERIFICA SE O USUÁRIO É PACIENTE
-        patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
+        patient, error, role_name = validate_user_role(cursor, patient_id, "paciente")
 
         if error:
-            return erro_role(error, role_name, patient)
+            return error_role(error, role_name, patient)
 
         # SE FOR CUIDADOR, PRECISA TER VINCULO COM O PACIENTE
         if logged_role == "cuidador":
-            vinculo = vinculo_cp(cursor, logged_user_id, patient_id)
+            vinculo =get_caregiver_patient_link(cursor, logged_user_id, patient_id)
 
             if not vinculo:
                  return jsonify ({
@@ -292,11 +296,11 @@ def my_medicines():
         cursor = connection.cursor()
 
         #BUSCA PACIENTE LOGADO
-        patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
+        patient, error, role_name = validate_user_role(cursor, patient_id, "paciente")
 
         # RETORNA O ERRO SE A ROLE NAO EXISTIR
         if error:
-            return erro_role(error, role_name, patient)
+            return error_role(error, role_name, patient)
 
         #BUSCA O MEDICAMENTO DO PACIENTE
         cursor.execute("""
@@ -357,11 +361,11 @@ def my_patients_medicines():
 
 
         # VERIFICA SE O ID INFORMADO COMO CUIDADOR EXISTE
-        caregiver, error, role_name = buscar_role(cursor, caregiver_id, "cuidador")
+        caregiver, error, role_name = validate_user_role(cursor, caregiver_id, "cuidador")
 
         # RETORNA O ERRO SE A ROLE NAO EXISTIR
         if error:
-            return erro_role(error, role_name, caregiver)
+            return error_role(error, role_name, caregiver)
 
         #BUSCAR OS MEDICAMENTOS DOS PACIENTES VINCULADOS
         cursor.execute("""
@@ -492,7 +496,7 @@ def edit_medicine(medicine_id):
             "status"
         ]
 
-        error = validate_non_empty_field(data, non_empty_fields)
+        error = validate_non_empty_fields(data, non_empty_fields)
 
         if error:
             return jsonify({

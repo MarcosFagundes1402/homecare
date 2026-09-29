@@ -32,7 +32,7 @@ def validate_required_fields(data, required_fields):
 
     return None
 
-def validate_non_empty_field(data, fields):
+def validate_non_empty_fields(data, fields):
     for field in fields:
         if field in data and (
             data[field] is None

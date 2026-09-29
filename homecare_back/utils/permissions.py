@@ -2,7 +2,7 @@ from flask_jwt_extended import get_jwt_identity
 from flask import jsonify
 from database.connect import connect
 from functools import wraps
-from homecare_back.utils.queries import get_user_by_id
+from utils.queries import get_user_by_id
 
 # Recebe as roles permitidas na rota
 # Exemplo: @roles_required("admin", "cuidador")
