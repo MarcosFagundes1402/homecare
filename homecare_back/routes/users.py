@@ -4,19 +4,23 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from utils.permissoes import roles_required
 from werkzeug.security import generate_password_hash, check_password_hash
 
+from utils.response import (
+    validate_non_empty_fields,
+)
+
 import sqlite3
 
-usuario_bp = Blueprint("usuarios", __name__)
+user_bp = Blueprint("usuarios", __name__)
 
 # CONSULTAR USUARIO (TODOS)
-@usuario_bp.route('/usuarios/consultar', methods=['GET'])
+@user_bp.route('/usuarios/consultar', methods=['GET'])
 @jwt_required()
 @roles_required("admin")
-def consultar_usuario():
-    conexao = None
+def list_users():
+    connection = None
     try:
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
         cursor.execute("""
             SELECT
@@ -41,137 +45,170 @@ def consultar_usuario():
                 ON  c.id = u.id
         """)
 
-        usuarios = cursor.fetchall()
+        users = cursor.fetchall()
 
-        lista_usuarios = [dict(usuario) for usuario in usuarios]
+        result = [dict(user) for user in users]
 
-        return jsonify(lista_usuarios), 200
+        return jsonify(result), 200
+
+    except Exception as e:
+        return jsonify({
+            "erro": str(e)
+        }), 500
 
     finally: 
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
 
 
 # CONSULTAR USUARIO POR (ID)
-@usuario_bp.route('/usuarios/consultar/<int:id>', methods=['GET'])
+@user_bp.route('/usuarios/consultar/<int:id>', methods=['GET'])
 @jwt_required()
 @roles_required("admin")
-def consultar_usuario_id(id):
+def get_user_by_id(user_id):
+    connection = None
 
-    conexao = connect()
-    cursor = conexao.cursor()
+    try:
+        connection = connect()
+        cursor = connection.cursor()
 
-    cursor.execute(""" SELECT * FROM usuarios WHERE id= ?""", (id,))
+        cursor.execute("""
+                SELECT
+                    id,
+                    nome,
+                    email,
+                    role
+                FROM usuarios 
+                WHERE id= ?
+            """, (user_id,))
 
-    usuario = cursor.fetchone()
-    conexao.close()
+        user = cursor.fetchone()
 
-    if usuario:
-        dados = dict(usuario)
-        dados.pop("senha")
+        if not user:
+            return jsonify({
+                "erro": "Usuário não encontrado."
+            }), 404
 
-        return jsonify(dados), 200
+        return jsonify(dict(user)), 200
 
-    return jsonify({
-        "erro": "Usuário não encontrado"
-    }), 404
+    except Exception as e:
+        return jsonify({
+            "erro": str(e)
+        }), 500
+
+    finally:
+        if connection:
+            connection.close()
 
 #REMOVI O PUT POIS ACHEI DESNECESSARIO TER QUE EDITAR TUDO É MAIS FACIL EDITAR ALGUMAS COISAS
 
 # EDITAR USUARIO PARCIAL (ID)
-@usuario_bp.route("/usuarios/editar/<int:id>", methods=['PATCH'])
+@user_bp.route("/usuarios/editar/<int:id>", methods=['PATCH'])
 @jwt_required()
 @roles_required("admin")
-def atualizar_usuario_parcial(id):
+def update_user(user_id):
+    connection = None
 
-    dados = request.get_json()
-
-    if not dados:
-        return jsonify({
-            "erro": "Dados não enviados"
-         }), 400
-
-    conexao = connect()
-    cursor = conexao.cursor()
 
     try:
+        data = request.get_json()
+
+        if not data:
+            return jsonify({
+                "erro": "Dados não enviados"
+            }), 400
+        
+        connection = connect()
+        cursor = connection.cursor()
+
         #BUSCA O USUÁRIO E A ROLE NO BANCO DE DADOS
         cursor.execute("""
             SELECT role
             FROM usuarios
             WHERE id = ?
-        """, (id,))
+        """, (user_id,))
 
-        usuario = cursor.fetchone()
+        user = cursor.fetchone()
 
-        if not usuario:
+        if not user:
             return jsonify({
                 "erro": "Usuário não encontrado."
             }), 404
 
-        role = usuario["role"].lower()
+        role = user["role"].lower()
 
         # CAMPOS QUE PODEM SER ALTERADOS
-        campos_permitidos = ["nome", "email", "senha"]
+        allowed_fields = ["nome", "email", "senha"]
 
-        campos = []
-        valores = []
-
-        for campo, valor in dados.items():
-            if campo not in campos_permitidos:
+        for field in data:
+            if field not in allowed_fields:
                 return jsonify({
-                    "erro": f"Campo '{campo.upper()}' não pode ser alterado."
+                    "erro": f"Campo '{field.upper()}' não pode ser alterado."
                 }), 400
 
-            if valor is None or valor == "":
-                return jsonify({
-                    "erro": f"O campo '{campo}' não pode estar vazio."
-                }), 400
-            
-            if campo == "senha":
-                valor = generate_password_hash(valor)
+        error = validate_non_empty_fields(data, allowed_fields)
 
-            campos.append(f"{campo} = ?")
-            valores.append(valor)
+        if error:
+            return jsonify({
+                "erro": error
+            }), 400
+        
+        fields = []
+        values = []
+
+        for field in allowed_fields:
+            if field in data:
+                value = data[field]
+
+                if field == "senha":
+                    value = generate_password_hash(value)
+
+                fields.append(f"{field} = ?")
+                values.append(value)
+
+        if not fields:
+             return jsonify({
+                 "erro": "Nenhum campo válido foi enviado para edição."
+             }), 400
 
         #VERIFICA DUPLICIDADE NO EMAIL ALTERADO
-        if "email" in dados:
+        if "email" in data:
             cursor.execute("""
                 SELECT id
                 FROM usuarios
                 WHERE email =?
                 AND id !=?
             """, (
-                dados["email"],
-                id
+                data["email"],
+                user_id
             ))
 
-            email_existente = cursor.fetchone()
+            existing_email = cursor.fetchone()
 
-            if email_existente:
+            if existing_email:
                 return jsonify({
                     "erro": "Email já utilizado por outro usuário."
                 }), 400
 
-        valores.append(id)
+        values.append(user_id)
 
         sql = f"""
             UPDATE usuarios 
-            SET {', '.join(campos)}
+            SET {', '.join(fields)}
             WHERE id=?
         """
-        cursor.execute(sql, valores)
+        cursor.execute(sql, values)
 
         #SINCRONIZA O NOME NA TABELA 
-        if "nome" in dados:
+        if "nome" in data:
             if role == "paciente":
                 cursor.execute("""
                     UPDATE pacientes
                     SET nome =?
                     WHERE id =?
                 """, (
-                    dados["nome"],
-                    id
+                    data["nome"],
+                    user_id
                 ))
 
             elif role == "cuidador":
@@ -180,43 +217,46 @@ def atualizar_usuario_parcial(id):
                     SET nome =?
                     WHERE id =? 
                 """, (
-                    dados["nome"], 
-                    id
+                    data["nome"], 
+                    user_id
                 ))
 
-        conexao.commit()
+        connection.commit()
 
-        dados_retorno = {
-            campo: valor
-            for campo, valor in dados.items()
-            if campo != "senha"
+        return_data = {
+            field: value
+            for field, value in data.items()
+            if field != "senha"
         }
 
         return jsonify ({
             "msg": "Usuário atualizado com sucesso.",
-            "usuario": id,
-            "dados_alterados": dados_retorno
+            "usuario": user_id,
+            "dados_alterados": return_data
         }), 200
 
     except sqlite3.IntegrityError as e:
-        conexao.rollback()
+        if connection:
+            connection.rollback()
 
         return jsonify({
             "erro": str(e)
         }), 400
 
     except Exception as e:
-        conexao.rollback()
+        if connection:
+            connection.rollback()
 
         return jsonify({
             "erro": str(e)
         }), 500
 
     finally:
-        conexao.close()
+        if connection:
+            connection.close()
 
 #DESATIVAR USUARIO
-@usuario_bp.route('/usuarios/desativar/<int:id>', methods=['DELETE'])
+@user_bp.route('/usuarios/desativar/<int:id>', methods=['DELETE'])
 @jwt_required()
 @roles_required("admin")
 def desativar_usuario(id):
@@ -313,7 +353,7 @@ def desativar_usuario(id):
         conexao.close()
 
 # CRIAR USUARIO
-@usuario_bp.route("/usuarios/cadastro", methods=["POST"])
+@user_bp.route("/usuarios/cadastro", methods=["POST"])
 def cadastro():
 
     novo_usuario = request.get_json()
@@ -465,7 +505,7 @@ def cadastro():
         if conexao:
             conexao.close()
 
-@usuario_bp.route('/usuarios/criar', methods=['POST'])
+@user_bp.route('/usuarios/criar', methods=['POST'])
 @jwt_required()
 @roles_required("admin")
 def criar_usuario():
@@ -622,9 +662,9 @@ def criar_usuario():
             conexao.close()
 
 #ROTA ESQUECI SENHA
-@usuario_bp.route("/usuarios/esqueci-senha", methods=['POST'])
+@user_bp.route("/usuarios/esqueci-senha", methods=['POST'])
 def forgot_password():
-    dados = request.get_json()
+    data = request.get_json()
 
     if not dados or not dados.get("email", "").strip():
         return jsonify({
@@ -658,7 +698,7 @@ def forgot_password():
     }), 200
 
 #ALTERAR SENHA
-@usuario_bp.route("/usuarios/alterar-senha", methods=['PATCH'])
+@user_bp.route("/usuarios/alterar-senha", methods=['PATCH'])
 @jwt_required()
 def alterar_senha():
     conexao = None

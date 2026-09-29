@@ -6,51 +6,68 @@ from utils import (
     roles_required,
     buscar_role,
     erro_role,
-    paciente_status
+    paciente_status,
+    validate_non_empty_fields
     )
 
-pacientes_bp = Blueprint("pacientes", __name__)
+patient_bp = Blueprint("pacientes", __name__)
 
 # CONSULTADO TODOS PACIENTES
-@pacientes_bp.route("/pacientes/consultar", methods=['GET'])
+@patient_bp.route("/pacientes/consultar", methods=['GET'])
 @jwt_required()
 @roles_required("admin")
-def mostrar_pacientes():
+def list_patients():
 
-    conexao = None
+    connection = None
 
     try: 
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
-        cursor.execute("SELECT * FROM pacientes")
+        cursor.execute(""" 
+            SELECT
+                id,
+                nome,
+                cpf,
+                data_nascimento,
+                tel,
+                endereco,
+                obs,
+                status
+            FROM pacientes
+        """)
 
-        pacientes = cursor.fetchall()
+        patients = cursor.fetchall()
 
-        lista_pacientes = [dict(paciente) for paciente in pacientes]
+        patients_list = [dict(patient) for patient in patients]
 
-        return jsonify (lista_pacientes), 200
+        return jsonify (patients_list), 200
+
+    except Exception as e:
+        return jsonify({
+            "erro": str(e)
+        }), 500
 
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
 
 #CONSULTANDO PACIENTES POR ID
-@pacientes_bp.route('/pacientes/consultar/<int:id>', methods=['GET'])
+@patient_bp.route('/pacientes/consultar/<int:id>', methods=['GET'])
 @jwt_required()
 @roles_required("admin")
-def consultar_paciente_id(id):
-    conexao = None
+def get_patient_by_id(patient_id):
+    connection = None
 
     try:
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
         #VALIDA SE O ID PERTENCE A UM PACIENTE
-        paciente, erro, role_nome = buscar_role(cursor, id, "paciente")
+        patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
 
-        if erro:
-            return erro_role(erro, role_nome, paciente)
+        if error:
+            return erro_role(error, role_name, patient)
 
         #BUSCA OS DADOS DO PACIENTE
         cursor.execute("""
@@ -64,25 +81,25 @@ def consultar_paciente_id(id):
                 status
             FROM pacientes
             WHERE id = ?
-        """, (id, ))
+        """, (patient_id, ))
 
-        dados_paciente = cursor.fetchone()
+        patient_data = cursor.fetchone()
 
-        if not dados_paciente:
+        if not patient_data:
             return jsonify({
                 "erro": "Paciente não encontrado."
             }), 404
 
         return jsonify({
             "paciente": {
-                "id": paciente["id"],
-                "nome": paciente["nome"],
-                "cpf": dados_paciente["cpf"],
-                "data_nascimento": dados_paciente["data_nascimento"],
-                "tel": dados_paciente["tel"],
-                "endereco": dados_paciente["endereco"],
-                "obs": dados_paciente["obs"],
-                "status": dados_paciente["status"]
+                "id": patient["id"],
+                "nome": patient["nome"],
+                "cpf": patient_data["cpf"],
+                "data_nascimento": patient_data["data_nascimento"],
+                "tel": patient_data["tel"],
+                "endereco": patient_data["endereco"],
+                "obs": patient_data["obs"],
+                "status": patient_data["status"]
             }
         }), 200
 
@@ -92,37 +109,37 @@ def consultar_paciente_id(id):
         }), 500
 
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
 
 #EDITAR PACIENTE
-@pacientes_bp.route('/pacientes/editar/<int:id>', methods=['PATCH'])
+@patient_bp.route('/pacientes/editar/<int:id>', methods=['PATCH'])
 @jwt_required()
 @roles_required("admin")
-def editar_paciente(id):
+def edit_patient(patient_id):
 
-    conexao = None
+    connection = None
 
     try: 
-        dados = request.get_json()
+        data = request.get_json()
 
-        if not dados:
+        if not data:
             return jsonify({
                 "erro": "Dados não encontrados."
             }), 400
 
         
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
         #VALIDA SE O ID PERTENCE A UM PACIENTE
-        paciente, erro, role_nome = buscar_role(cursor, id, "paciente")
+        patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
 
-        if erro:
-            return erro_role(erro, role_nome, paciente)
+        if error:
+            return erro_role(error, role_name, patient)
 
         #CAMPOS QUE PODEM SER EDITADOS
-        campos_permitidos = [
+        allowed_fields = [
             "cpf",
             "data_nascimento",
             "tel",
@@ -130,124 +147,123 @@ def editar_paciente(id):
             "obs"
         ]
 
+        for field in data:
+            if field not in allowed_fields:
+                return jsonify({
+                    "erro": f"O campo '{field}' não pode ser editado."
+                }), 400
+
         #CAMPOS QUE NÃO PODEM FICAR VAZIOS
-        campos_vazio = [
+        non_empty_fields = [
             "cpf",
             "data_nascimento",
             "tel",
             "endereco"
         ]
 
-        #VALIDA CAMPO NAO PERMITIDO
-        for campo in campos_vazio:
-            for campo in dados:
-                if dados[campo] is None or str(dados[campo]).strip() == "":
-                    return jsonify({
-                        "erro": f"O campo '{campo}' não pode ser editado."
-                    }), 400
+        error = validate_non_empty_fields(data, non_empty_fields)
+
+        if error:
+            return jsonify({
+                "erro": error
+            }), 400
 
         #SE O CPF ENVIADO, VERIFICA DUPLICIDADE
-        if "cpf" in dados:
-
-            if dados["cpf"] is None or str(dados["cpf"]).strip() == "":
-                return jsonify({
-                    "erro": "O campo 'cpf' não pode estar vazio."
-                }), 400
-
+        if "cpf" in data:
             cursor.execute("""
                 SELECT id
                 FROM pacientes
                 WHERE cpf = ?
                 AND id != ?
             """, (
-                dados["cpf"],
-                id
+                data["cpf"],
+                patient_id
             ))
 
-            cpf_existente = cursor.fetchone()
+            existing_cpf = cursor.fetchone()
 
-            if cpf_existente:
+            if existing_cpf:
                 return jsonify({
                     "erro": "CPF já cadastrado."
                 }), 400
 
         #MONTA UPDATE DINAMICO
-        campos = []
-        valores = []
+        fields = []
+        values = []
 
-        for campo in campos_permitidos:
-            if campo in dados:
-                campos.append(f"{campo} = ?")
-                valores.append(dados[campo])
+        for field in allowed_fields:
+            if field in data:
+                fields.append(f"{field} = ?")
+                values.append(data[field])
 
-        if not campos:
+        if not fields:
             return jsonify({
                 "erro": "Nenhum campo válido foi enviado para edição."
             }), 400
 
-        valores.append(id)
+        values.append(patient_id)
 
         #ATUALIZA PACIENTE
         cursor.execute(f"""
             UPDATE pacientes
-            SET {", ".join(campos)}
+            SET {", ".join(fields)}
             WHERE id = ?
-        """, valores)
+        """, values)
 
-        conexao.commit()
+        connection.commit()
 
         return jsonify({
             "msg": "Paciente atualizado com sucesso.",
-            "paciente_id": id,
+            "paciente_id": patient_id,
 
-            "campos_atualizados": dados
+            "campos_atualizados": data
         }), 200
         
     except sqlite3.IntegrityError:
-        if conexao:
-            conexao.rollback()
+        if connection:
+            connection.rollback()
 
         return jsonify({
             "erro": "CPF já cadastrado."
         }), 400
 
     except Exception as e:
-        if conexao:
-            conexao.rollback()
+        if connection:
+            connection.rollback()
 
         return jsonify({
             "erro": str(e)
         }), 500
     
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()
 
 # DESATIVAR PACIENTE 
-@pacientes_bp.route('/pacientes/desativar/<int:id>', methods=['DELETE'])
+@patient_bp.route('/pacientes/desativar/<int:id>', methods=['DELETE'])
 @jwt_required()
 @roles_required("admin")
-def desativar_paciente(id):
+def disable_patient(patient_id):
 
-    conexao = None
+    connection = None
 
     try:
-        conexao = connect()
-        cursor = conexao.cursor()
+        connection = connect()
+        cursor = connection.cursor()
 
-        paciente, erro, role_nome = buscar_role(cursor, id, "paciente")
+        patient, error, role_name = buscar_role(cursor, patient_id, "paciente")
 
-        if erro:
-            return erro_role(erro, role_nome, paciente)
+        if error:
+            return erro_role(error, role_name, patient)
         
-        paciente_cadastrado = paciente_status(cursor, id)
+        registered_patient = paciente_status(cursor, patient_id)
 
-        if not paciente_cadastrado:
+        if not registered_patient:
             return jsonify({
                 "erro": "Paciente não encontrado."
             }), 404
 
-        if paciente_cadastrado["status"] == "inativo":
+        if registered_patient["status"] == "inativo":
             return jsonify({
                 "erro": "Paciente já inativo."
             }), 400
@@ -256,28 +272,28 @@ def desativar_paciente(id):
             UPDATE pacientes
             SET status = 'inativo'
             WHERE id = ?
-        """, (id,))
+        """, (patient_id,))
 
-        conexao.commit()
+        connection.commit()
 
         return jsonify({
             "msg": "Paciente desativado com sucesso.",
 
             "paciente": {
-                "id": paciente["id"],
-                "nome": paciente["nome"],
+                "id": patient["id"],
+                "nome": patient["nome"],
                 "status": "inativo"
             }
         }), 200
 
     except Exception as e:
-        if conexao:
-            conexao.rollback()
+        if connection:
+            connection.rollback()
 
         return jsonify({
             "erro": str(e)
         }), 500
     
     finally:
-        if conexao:
-            conexao.close()
+        if connection:
+            connection.close()

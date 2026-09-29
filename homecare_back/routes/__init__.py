@@ -1,4 +1,4 @@
-from routes.usuarios import usuario_bp
+from homecare_back.routes.users import usuario_bp
 from routes.login import auth_bp
 from routes.pacientes import pacientes_bp
 from homecare_back.routes.caregiver import cuidadores_bp
