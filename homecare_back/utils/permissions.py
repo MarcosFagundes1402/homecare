@@ -2,34 +2,36 @@ from flask_jwt_extended import get_jwt_identity
 from flask import jsonify
 from database.connect import connect
 from functools import wraps
-from utils.consultas import buscar_usuario_por_id
+from homecare_back.utils.queries import get_user_by_id
 
 # Recebe as roles permitidas na rota
 # Exemplo: @roles_required("admin", "cuidador")
-def roles_required(*roles_permitidas):
+def roles_required(*allowed_roles):
+    allowed_roles = tuple(role.lower() for role in allowed_roles)
+    
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
             
-            usuario_id = get_jwt_identity()
+            user_id = int(get_jwt_identity())
 
-            conexao = None
+            connection = None
 
             try:
-                conexao = connect()
-                cursor = conexao.cursor()
+                connection = connect()
+                cursor = connection.cursor()
 
                 #BUSCA A ROLE DO USUARIO LOGADO
-                usuario = buscar_usuario_por_id(cursor, usuario_id)
+                user = get_user_by_id(cursor, user_id)
 
-                #VERIFICA E O USUÁRIO EXISTE 
-                if not usuario:
+                #VERIFICA SE O USUÁRIO EXISTE 
+                if not user:
                     return jsonify({
                         "erro": "Usuário não encontrado."
                     }), 404
 
                 #VERIFICA SE A ROLE ESTÁ ENTRE AS PERMITIDAS
-                if usuario["role"].lower() not in roles_permitidas:
+                if user["role"].lower() not in allowed_roles:
                     return jsonify({
                         "erro": "Usuário sem permissão para acessar."
                     }), 403
@@ -37,8 +39,8 @@ def roles_required(*roles_permitidas):
                 return func(*args, **kwargs)
 
             finally:
-                if conexao:
-                    conexao.close()
+                if connection:
+                    connection.close()
         
         return wrapper
     

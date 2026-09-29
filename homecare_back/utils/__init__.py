@@ -1,4 +1,4 @@
-from .consultas import(
+from .queries import(
     buscar_usuario_por_id,
     buscar_role,
     cuidador_status,
@@ -6,6 +6,6 @@ from .consultas import(
     vinculo_cp
 )
 
-from .permissoes import roles_required
+from .permissions import roles_required
 
 from .response import erro_role

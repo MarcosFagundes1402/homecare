@@ -1,7 +1,7 @@
 from flask import jsonify, request, Blueprint
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from utils.permissoes import roles_required
+from homecare_back.utils.permissions import roles_required
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from utils.response import (
