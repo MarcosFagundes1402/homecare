@@ -3,7 +3,7 @@ from routes.login import auth_bp
 from routes.pacientes import pacientes_bp
 from homecare_back.routes.caregiver import cuidadores_bp
 from homecare_back.routes.caregiver_patient import cuidadores_pacientes_bp
-from routes.medicamentos import medicamentos_bp
+from homecare_back.routes.medication import medicamentos_bp
 from homecare_back.routes.administration_medications import administracao_medicamentos_bp
 from routes.relatorios_diarios import relatorios_diarios_bp
 
