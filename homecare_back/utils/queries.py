@@ -1,29 +1,9 @@
 #BUSCAR USUARIO VIA ID
 def get_user_by_id(cursor, user_id):
     cursor.execute("""
-        SELECT id, nome, role
-        FROM usuarios
-        WHERE id = ?
-    """, (user_id,))
-
-    return cursor.fetchone()
-
-#BUSCAR STATUS DO CUIDADOR
-def caregiver_stats(cursor, user_id):
-    cursor.execute("""
-        SELECT id, status
-        FROM cuidadores
-        WHERE id = ?
-    """, (user_id,))
-
-    return cursor.fetchone()
-
-#BUSCAR STATUS DO PACIENTE
-def patient_stats(cursor, user_id):
-    cursor.execute("""
-        SELECT id, status
-        FROM pacientes
-        WHERE id = ?
+        SELECT id, name, role, active
+        FROM users
+        WHERE id = %s
     """, (user_id,))
 
     return cursor.fetchone()
@@ -32,9 +12,9 @@ def patient_stats(cursor, user_id):
 def get_caregiver_patient_link(cursor, caregiver_id, patient_id):
     cursor.execute("""
         SELECT id
-        FROM cuidadores_pacientes
-        WHERE cuidador_id = ?
-        AND paciente_id = ?
+        FROM caregiver_patient_links
+        WHERE caregiver_id = %s
+        AND patient_id = %s
     """,(
         caregiver_id,
         patient_id
@@ -55,3 +35,20 @@ def validate_user_role(cursor, user_id, expected_role):
         return user, "role_invalida", role_name
 
     return user, None, role_name
+
+
+# BUSCA USUARIO PELO EMAIL
+def get_user_by_email(cursor, email):
+    cursor.execute("""
+            SELECT
+                id,
+                name,
+                email,
+                password_hash,
+                role,
+                active
+            FROM users
+            WHERE email = %s
+    """, (email,))
+
+    return cursor.fetchone()

@@ -1,9 +1,11 @@
-import sqlite3
+import psycopg
+import os
+from psycopg.rows import dict_row
 
 def connect():
-    connection =  sqlite3.connect("database/homecare.db")
-    connection.row_factory = sqlite3.Row
+    connection = psycopg.connect(
+        os.getenv("DATABASE_URL"),
+        row_factory = dict_row
+    )
 
-    connection.execute("PRAGMA foreign_keys = ON")
-    
     return connection
