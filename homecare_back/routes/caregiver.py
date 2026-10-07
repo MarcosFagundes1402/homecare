@@ -6,7 +6,6 @@ from utils.permissions import roles_required
 from utils.response import error_role
 from utils.queries import (
     validate_user_role,
-    caregiver_stats,
     )
 
 caregiver_bp = Blueprint("cuidadores", __name__)

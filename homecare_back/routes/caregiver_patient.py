@@ -4,8 +4,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from utils.permissions import roles_required
 from utils.response import error_role
 from utils.queries import (
-        caregiver_stats,
-        patient_stats,
         get_caregiver_patient_link,
         validate_user_role,
     ) 

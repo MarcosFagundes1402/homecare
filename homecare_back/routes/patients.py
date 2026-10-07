@@ -8,7 +8,6 @@ from utils.response import validate_non_empty_fields, error_role
 from utils import (
     validate_user_role,
     error_role,
-    patient_stats,
     )
 
 patient_bp = Blueprint("pacientes", __name__)

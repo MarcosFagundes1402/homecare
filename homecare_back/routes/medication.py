@@ -11,7 +11,6 @@ from utils.response import (
 
 from utils.queries import (
     validate_user_role,
-    patient_stats,
     get_caregiver_patient_link,
 )
 

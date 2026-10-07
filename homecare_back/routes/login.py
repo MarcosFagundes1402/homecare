@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify
 from database.connect import connect
 from flask_jwt_extended import create_access_token
 from werkzeug.security import check_password_hash
-from utils import get_user_by_email
+from utils.queries import get_user_by_email
 
 from utils.response import validate_required_fields
 
