@@ -1,4 +1,6 @@
-from  flask import Flask
+import os
+
+from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from routes import register_routes
@@ -12,7 +14,7 @@ CORS(
     methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
 )
 
-app.config["JWT_SECRET_KEY"] = "chave_secreta"
+app.config["JWT_SECRET_KEY"] = os.getenv("JWT_SECRET_KEY")
 
 jwt = JWTManager(app)
 
