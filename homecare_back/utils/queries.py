@@ -11,7 +11,7 @@ def get_user_by_id(cursor, user_id):
 #CONSULTA VINCULDO DO CUIDADOR COM PACIENTE
 def get_caregiver_patient_link(cursor, caregiver_id, patient_id):
     cursor.execute("""
-        SELECT id
+        SELECT id, active
         FROM caregiver_patient_links
         WHERE caregiver_id = %s
         AND patient_id = %s
@@ -35,7 +35,6 @@ def validate_user_role(cursor, user_id, expected_role):
         return user, "role_invalida", role_name
 
     return user, None, role_name
-
 
 # BUSCA USUARIO PELO EMAIL
 def get_user_by_email(cursor, email):
@@ -254,3 +253,66 @@ def disable_user(cursor, user_id):
         SET active = false
         WHERE id = %s
     """, (user_id,))
+
+def generate_link(cursor, caregiver_id, patient_id):
+
+    cursor.execute("""
+        INSERT INTO caregiver_patient_links
+            caregiver_id,
+            patient_id,
+            created_date,
+            created_time
+        VALUE (%s, %s, CURRENT_DATE, CURRENT_TIME)
+    """, (
+        caregiver_id,
+        patient_id
+    ))
+
+def disable_link(cursor, caregiver_id, patient_id):
+    cursor.execute("""
+        UPDATE caregiver_patient_links
+        SET active = false
+        WHERE caregiver_id = %s
+        AND patient_id = %s
+    """,(
+        caregiver_id,
+        patient_id
+    ))
+
+def get_patients_by_caregiver(cursor, caregiver_id):
+    cursor.execute("""
+        SELECT
+            u.id,
+            u.name,
+            u.cpf,
+            u.birth_date,
+            u.phone,
+            u.address,
+            u.active
+        FROM caregiver_patient_links cpl
+        JOIN users u
+            ON cpl.patient_id = u.id
+        WHERE cpl.caregiver_id = %s
+        AND cpl.active = true
+    """, (caregiver_id,))
+
+    return cursor.fetchall()
+
+def get_caregivers_by_patient(cursor, patient_id):
+    cursor.execute("""
+        SELECT
+            u.id,
+            u.name,
+            u.cpf,
+            u.birth_date,
+            u.phone,
+            u.address,
+            u.active
+        FROM caregiver_patient_links cpl
+        JOIN users u
+            ON cpl.caregiver_id = u.id
+        WHERE cpl.patient_id = %s
+        AND cpl.active = true
+    """, (patient_id,))
+
+    return cursor.fetchall()
