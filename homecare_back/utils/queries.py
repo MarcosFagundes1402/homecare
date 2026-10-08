@@ -68,7 +68,6 @@ def get_all_users(cursor):
 
     return cursor.fetchall()
 
-
 def get_user_by_email(cursor, email):
     cursor.execute("""
         SELECT
@@ -83,7 +82,6 @@ def get_user_by_email(cursor, email):
     """, (email,))
 
     return cursor.fetchone()
-
 
 def get_user_by_email_except_id(cursor, email, user_id):
     cursor.execute("""
@@ -192,7 +190,6 @@ def get_patient_data_by_id(cursor, user_id):
     
     return cursor.fetchall()
 
-
 def get_caregiver_data(cursor):
     cursor.execute("""
             SELECT 
@@ -209,8 +206,7 @@ def get_caregiver_data(cursor):
     
     return cursor.fetchone()
 
-
-def get_patient_data_by_id(cursor, user_id):
+def get_caregiver_data_by_id(cursor, user_id):
     cursor.execute("""
             SELECT 
                 id,
@@ -227,7 +223,7 @@ def get_patient_data_by_id(cursor, user_id):
 
     return cursor.fetchall()
 
-def get_user_cpf_execept_id(cursor, cpf, user_id):
+def get_user_cpf_except_id(cursor, cpf, user_id):
     cursor.execute("""
                 SELECT id
                 FROM users

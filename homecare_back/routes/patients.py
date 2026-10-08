@@ -13,7 +13,7 @@ from utils import (
 from utils.queries import (
     get_patient_data,
     get_patient_data_by_id,
-    get_user_cpf_execept_id,
+    get_user_cpf_except_id,
     update_user_fields,
     disable_user
 )
@@ -142,7 +142,7 @@ def edit_patient(user_id):
 
         #SE O CPF ENVIADO, VERIFICA DUPLICIDADE
         if "cpf" in data:
-            existing_cpf = get_user_cpf_execept_id(cursor, data["cpf"], user_id)
+            existing_cpf = get_user_cpf_except_id(cursor, data["cpf"], user_id)
 
             if existing_cpf:
                 return jsonify({
