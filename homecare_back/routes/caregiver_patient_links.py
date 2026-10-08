@@ -9,7 +9,9 @@ from utils.queries import (
         generate_link,
         get_patients_by_caregiver,
         get_caregivers_by_patient,
-        disable_link
+        disable_link,
+        create_link_history,
+        close_link_history
     ) 
 
 
@@ -72,7 +74,10 @@ def create_link():
             }), 409
 
         # CRIA O VINCULO
-        generate_link(cursor, data["caregiver_id"], data["patient_id"])
+        link_id = generate_link(cursor, data["caregiver_id"], data["patient_id"])
+
+        #CRIA O HISTORICO DE VINCULOS
+        create_link_history(cursor, link_id)
       
         connection.commit()
 
@@ -292,6 +297,8 @@ def remove_link():
 
         # REMOVE O VINCULO
         disable_link(cursor, data["caregiver_id"], data["patient_id"])
+
+        close_link_history(cursor, existing_link["id"])
 
         connection.commit()
 

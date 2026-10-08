@@ -316,3 +316,27 @@ def get_caregivers_by_patient(cursor, patient_id):
     """, (patient_id,))
 
     return cursor.fetchall()
+
+def create_link_history(cursor, link_id):
+    cursor.execute("""
+        INSERT INTO caregiver_patient_link_history(
+            link_id,
+            started_data,
+            started_time
+            )
+        VALUES (%s, CURRENT_DATE, CURRENT_TIME)
+         RETURNING id
+    """, (link_id,))
+
+    return cursor.fetchone()["id"]
+
+def close_link_history(cursor, link_id):
+    cursor.executer("""
+        UPDATE caregiver_patient_link_history
+        SET
+            ended_date = CURRENT_DATE,
+            ended_time = CURRENT_TIME
+        WHERE link_id = %s
+        AND ended_date IS NULL
+        AND ended_time IS NULL
+    """, (link_id,))
