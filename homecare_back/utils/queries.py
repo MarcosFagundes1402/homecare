@@ -157,3 +157,104 @@ def update_user_password(cursor, user_id, password_hash):
         password_hash,
         user_id
     ))
+
+def get_patient_data(cursor):
+    cursor.execute("""
+        SELECT 
+            id,
+            name,
+            cpf,
+            birth_date,
+            phone,
+            address,
+            active
+        FROM users
+        WHERE role = 'patient'
+        ORDER BY id
+    """)
+
+    return cursor.fetchall()
+
+def get_patient_data_by_id(cursor, user_id):
+    cursor.execute("""
+            SELECT 
+                id,
+                name,
+                cpf,
+                birth_date,
+                phone,
+                address,
+                active
+            FROM users
+            WHERE role = 'patient'
+            AND id = %s
+        """, (user_id,))
+    
+    return cursor.fetchall()
+
+
+def get_caregiver_data(cursor):
+    cursor.execute("""
+            SELECT 
+                id,
+                name,
+                cpf,
+                birth_date,
+                phone,
+                address,
+                active
+            FROM users
+            WHERE role = 'caregiver'
+        """)
+    
+    return cursor.fetchone()
+
+
+def get_patient_data_by_id(cursor, user_id):
+    cursor.execute("""
+            SELECT 
+                id,
+                name,
+                cpf,
+                birth_date,
+                phone,
+                address,
+                active
+            FROM users
+            WHERE role = 'caregiver'
+            AND id = %s
+        """, (user_id,))
+
+    return cursor.fetchall()
+
+def get_user_cpf_execept_id(cursor, cpf, user_id):
+    cursor.execute("""
+                SELECT id
+                FROM users
+                WHERE cpf = %s
+                AND id != %s
+            """, (
+                cpf,
+                user_id
+            ))
+
+    return cursor.fetchone()
+
+def update_user_fields(cursor, user_id, fields, values):
+
+    params = values + [user_id]
+
+    cursor.execute(f"""
+            UPDATE users
+            SET {", ".join(fields)}
+            WHERE id = %s
+        """, params)
+
+    return cursor.fetchone()
+
+def disable_user(cursor, user_id):
+    cursor.execute("""
+        UPDATE users
+        SET active = false
+        WHERE id = %s
+    """, (user_id,))
