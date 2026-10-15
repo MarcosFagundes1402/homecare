@@ -343,3 +343,61 @@ def close_link_history(cursor, link_id):
         AND ended_date IS NULL
         AND ended_time IS NULL
     """, (link_id,))
+
+# VERIDICA SE O MEDICAMENTO JA ESTÁ CADASTRADO
+def get_active_medicine(cursor, patient_id, name, schedule_time):
+    cursor.execute("""
+        SELECT 
+            id, 
+            disage
+        FORM medicienes
+        WHERE patient_id = %s
+        AND name = $s
+        AND dosage = $s
+        AND schedule_time = $s
+    """, (
+            patient_id,
+            name,
+            schedule_time
+        ))
+
+    return cursor.fetchone()
+
+# CRIAR O MEDICAMENTO
+def register_medicine(cursor, patient_id, name, dosage, schedule_time, notes):
+    cursor.execute("""
+        INSERT INTO medicines(
+            patient_id,
+            name,
+            dosage,
+            schedule_time,
+            notes
+        )
+        VALUES (%s, %s, %s, %s, %s)
+        RETURNING id
+    """,(
+        patient_id,
+        name,
+        dosage,
+        schedule_time,
+        notes
+    ))
+
+    return cursor.fetchone()["id"]
+    
+# BUSCA TODOS OS MEDICAMENTOS ATIVOS
+def get_medicines_data(cursor):
+    cursor.execute("""
+        SELECT 
+            id,
+            patient_id,
+            name,
+            dosage,
+            schedule_time,
+            notes,
+        WHERE active = true
+        FROM medicines
+        ORDER BY name
+    """)
+
+    return cursor.fetchall()

@@ -12,12 +12,15 @@ from utils.response import (
 from utils.queries import (
     validate_user_role,
     get_caregiver_patient_link,
+    get_active_medicine,
+    register_medicine,
+    get_medicines_data
 )
 
-medicines_bp = Blueprint("medicamentos",__name__)
+medicines_bp = Blueprint("medicines",__name__, url_prefix="/medicines")
 
 #CRIA MEDICAMENTO PARA UM PACIENTE
-@medicines_bp.route("/medicamentos/criar", methods=['POST'])
+@medicines_bp.route("", methods=['POST'])
 @jwt_required()
 @roles_required("admin")
 def create_medicine():
@@ -28,21 +31,21 @@ def create_medicine():
 
         if not data:
             return jsonify({
-                "erro": "Dados não encontrados."
+                "error": "Dados não encontrados."
             }), 400
 
         required_fields = [
-                    "paciente_id",
-                    "nome",
-                    "dosagem",
-                    "horario"
+                    "patient_id",
+                    "name",
+                    "dosage",
+                    "schedule_time"
                 ]
 
         error = validate_required_fields(data, required_fields)
 
         if error:
             return jsonify({
-                "erro": error
+                "error": error
             }), 400
  
 
@@ -50,89 +53,54 @@ def create_medicine():
         cursor = connection.cursor()
 
         #VERIFICA SE É PACIENTE
-        patient, error, role_name = validate_user_role(cursor, data["paciente_id"], "paciente")
+        patient, error, role_name = validate_user_role(cursor, data["patient_id"], "patient")
 
         if error:
             return error_role(error, role_name, patient)
 
-        #VERIFICA STATUS DO PACIENTE
-        registered_patient = patient_stats(cursor, data["paciente_id"])
-
-        if not registered_patient:
+        if not patient["active"]:
             return jsonify({
-                "erro": "Paciente não encontrado."
-            }), 404
-
-        if registered_patient["status"] != "ativo":
-            return jsonify({
-                "erro": "Não é possível cadastrar medicamento para paciente inativo."
+                "error": "Não é possivel cadastrar medicamento para paciente inativo."
             }), 400
         
         #VERIFICA SE O MEDICAMENTO JÁ ESTÁ CADASTRADO
-        cursor.execute("""
-            SELECT id, dosagem 
-            FROM medicamentos
-            WHERE paciente_id = ? 
-            AND nome = ?
-            AND horario = ?
-            AND status = 'ativo'
-        """, (
-            data["paciente_id"],
-            data["nome"],
-            data["horario"]
-        ))
-
-        existing_medicine = cursor.fetchone()
+        existing_medicine = get_active_medicine(cursor, data["patient_id"], data["name"], data["schedule_time"])
 
         if existing_medicine:
             return jsonify({
-                "erro": "Já existe medicamento cadastrado neste horário.",
-                "medicamento_id": existing_medicine["id"],
-                "dosagem_atual": existing_medicine["dosagem"],
-                "sugestao": "Edite o medicamento existente caso queira alterar a dosagem."
+                "error": "Já existe medicamento cadastrado neste horário.",
+                "medicine_id": existing_medicine["id"],
+                "dosage": existing_medicine["dosage"],
+                "suggestion": "Edite o medicamento existente caso queira alterar a dosagem."
             }), 409
         
         #CRIA O MEDICAMENTO
-        status = data.get("status", "ativo")
-
-        cursor.execute("""
-            INSERT INTO medicamentos(
-                paciente_id,
-                nome,
-                dosagem,
-                horario,
-                obs,
-                status
-            )
-            VALUES (?, ?, ?, ?, ?, ?)
-        """,(
-            data["paciente_id"],
-            data["nome"],
-            data["dosagem"],
-            data["horario"],
-            data.get("obs"),
-            status
-        ))
-
-        medicine_id = cursor.lastrowid
+        medicine_id = register_medicine(
+            cursor,
+            data["patient_id"],
+            data["name"],
+            data["dosage"],
+            data["schedule_time"],
+            data.get("notes"),
+        )
 
         connection.commit()
 
         return jsonify({
-            "msg": "Medicamento criado com sucesso.",
+            "message": "Medicamento criado com sucesso.",
 
-            "paciente": {
+            "patient": {
                 "id": patient["id"],
-                "nome": patient["nome"]
+                "name": patient["name"]
             },
 
-            "medicamento":{
+            "medicine":{
                 "id": medicine_id,
-                "nome": data["nome"],
-                "dosagem": data["dosagem"],
-                "horario": data["horario"],
-                "obs": data.get("obs"),
-                "status": status
+                "name": data["name"],
+                "dosage": data["dosage"],
+                "schedule_time": data["schedule_time"],
+                "notes": data.get("notes"),
+                "active": True
             }
         }), 201
 
@@ -141,7 +109,7 @@ def create_medicine():
             connection.rollback()
 
         return jsonify({
-            "erro": str(e)
+            "error": str(e)
         }), 500
 
     finally:
@@ -149,7 +117,7 @@ def create_medicine():
             connection.close()
 
 #ADMIN CONSULTA TODOS OS MEDICAMENTOS
-@medicines_bp.route("/medicamentos/consultar", methods=['GET'])
+@medicines_bp.route("", methods=['GET'])
 @jwt_required()
 @roles_required("admin")
 def list_medicines():
@@ -159,35 +127,22 @@ def list_medicines():
         connection = connect()
         cursor = connection.cursor()
 
-        cursor.execute("""
-            SELECT
-                id,
-                paciente_id,
-                nome,
-                dosagem,
-                horario,
-                obs,
-                status
-            FROM medicamentos
-            ORDER BY nome
-        """)
-
-        medicines = cursor.fetchall()
+        medicines = get_medicines_data(cursor)
 
         if not medicines:
             return jsonify({
-                "medicamentos": []
+                "medicines": []
             }), 200
 
         medicine_list = [dict(medicine) for medicine in medicines]
 
         return jsonify({
-            "medicamentos": medicine_list
+            "medicines": medicine_list
         }), 200
 
     except Exception as e:
         return jsonify({
-            "erro": str(e)
+            "error": str(e)
         }), 500
     finally:
         if connection:
