@@ -1,0 +1,6 @@
+Flask
+Flask-JWT-Extended
+psycopg[binary]
+Werkzeug
+gunicorn
+Flask-Cors
