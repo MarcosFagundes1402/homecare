@@ -387,6 +387,7 @@ def register_medicine(cursor, patient_id, name, dosage, schedule_time, notes):
     
 # BUSCA TODOS OS MEDICAMENTOS ATIVOS
 def get_medicines_data(cursor):
+
     cursor.execute("""
         SELECT 
             id,
@@ -401,3 +402,84 @@ def get_medicines_data(cursor):
     """)
 
     return cursor.fetchall()
+
+# BUSCA MEDICAMENTO DE UM PACIENTE
+def get_medicines_by_patient_id(cursor, patient_id):
+
+    cursor.execute("""
+        SELECT 
+            id,
+            name,
+            dosage,
+            schedule_time,
+            notes,
+            active
+        FROM medicines
+        WHERE patient_id
+        ORDER BY id DESC
+    """, (patient_id,))
+
+    return cursor.fetchall()
+
+# BUSCA OS MEDICAMENTOS DOS PACIENTES VINCULADOS AO CUIDADOR
+def get_medicines_by_caregiver(cursor, caregiver_id):
+
+    cursor.execute("""
+        SELECT
+            m.id,
+            m.name,
+            m.dosage,
+            m.schedule_time,
+            m.notes,
+            m.active,
+
+            u.id AS patient_id,
+            u.name AS patient_name
+
+        FROM medicines m
+
+        JOIN caregiver_patient_links cpl
+            ON cpl.patient_id = m.patient_id
+
+        JOIN users u
+            ON u.id = m.patient_id
+
+        WHERE cpl.caregiver_id = %s
+        AND cpl.active = true
+
+        ORDER BY u.name, m.id DESC
+    """, (caregiver_id,))
+
+    return cursor.fetchall()
+
+# VERIFICA SE O MEDICAMENTO EXISTE
+def validate_medicine(cursor, medicine_id):
+    cursor.execute("""
+        SELECT 
+            id, 
+            patient_id, 
+            name,
+            active
+        FROM medicines
+        WHERE id = %s
+    """, (medicine_id,))
+
+    return cursor.fetchone()
+
+# ATUALIZA A TABELA DE MEDICAMENTOS
+def update_medicine(cursor, medicines_id, fields, values):
+    params = values + [medicines_id]
+
+    cursor.execute(f"""
+        UPDATE medicines 
+        SET {", ".join(fields)}
+        WHERE id = %s
+    """, params)
+
+# ATUALIZA MEDICAMENTO COM STATUS DE DESATIVADO
+def set_medicine_inactive(cursor, medicine_id):
+    cursor.execute("""
+        UPDATE medicines
+        SET active = false
+        WHERE id = %s
+    """, (medicine_id,))

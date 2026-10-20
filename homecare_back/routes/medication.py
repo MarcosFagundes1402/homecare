@@ -14,7 +14,13 @@ from utils.queries import (
     get_caregiver_patient_link,
     get_active_medicine,
     register_medicine,
-    get_medicines_data
+    get_user_by_id,
+    get_medicines_data,
+    get_medicines_by_patient_id,
+    get_medicines_by_caregiver,
+    validate_medicine,
+    update_medicine,
+    set_medicine_inactive
 )
 
 medicines_bp = Blueprint("medicines",__name__, url_prefix="/medicines")
@@ -149,9 +155,9 @@ def list_medicines():
             connection.close()
         
 # ADMIN CONSULTAR MEDICAMENTOS DE UM PACIENTE
-@medicines_bp.route("/medicamentos/consultar-paciente/<int:id>", methods=['GET'])
+@medicines_bp.route("/<int:patient_id>", methods=['GET'])
 @jwt_required()
-@roles_required("admin", "cuidador")
+@roles_required("admin", "caregiver")
 def list_patient_medicines(patient_id):
     connection = None
 
@@ -161,74 +167,55 @@ def list_patient_medicines(patient_id):
 
         logged_user_id = int(get_jwt_identity())
 
-        cursor.execute("""
-            SELECT role
-            FROM usuarios
-            WHERE id = ? 
-        """, (logged_user_id,))
-
-        logged_user = cursor.fetchone()
-
-        if not logged_user:
+        user = get_user_by_id(cursor, logged_user_id)
+        
+        if not user:
             return jsonify({
-                "msg": "Usuário não encontrado."
+                "message": "Usuário não encontrado."
             }), 400
 
-        logged_role = logged_user["role"]
+        logged_role = user["role"]
 
         # VERIFICA SE O USUÁRIO É PACIENTE
-        patient, error, role_name = validate_user_role(cursor, patient_id, "paciente")
+        patient, error, role_name = validate_user_role(cursor, patient_id, "patient")
 
         if error:
             return error_role(error, role_name, patient)
 
         # SE FOR CUIDADOR, PRECISA TER VINCULO COM O PACIENTE
-        if logged_role == "cuidador":
-            vinculo =get_caregiver_patient_link(cursor, logged_user_id, patient_id)
+        if logged_role == "caregiver":
+            link = get_caregiver_patient_link(cursor, logged_user_id, patient_id)
 
-            if not vinculo:
+            if not link or not link["active"]:
                  return jsonify ({
-                     "erro": "Você não possui vinculo com este paciente."
+                     "error": "Você não possui vinculo com este paciente."
                  }), 403
             
         # BUSCA O MEDICAMENTO DO PACIENTE
-        cursor.execute("""
-            SELECT 
-                id,
-                nome,
-                dosagem,
-                horario,
-                obs,
-                status
-            FROM medicamentos
-            WHERE paciente_id = ?
-            ORDER BY id DESC
-        """, (patient_id,))
-
-        medicines = cursor.fetchall()
+        medicines = get_medicines_by_patient_id(cursor, patient_id)
 
         if not medicines:
             return jsonify({
-                "paciente": {
+                "patient": {
                     "id": patient["id"],
-                    "nome": patient["nome"]
+                    "name": patient["name"]
                 },
-                "medicamentos": []
+                "medicines": []
             }), 200
 
         medicine_list = [dict(medicine) for medicine in medicines]
 
         return jsonify({
-            "paciente": {
+            "patient": {
                 "id": patient["id"],
-                "nome": patient["nome"]
+                "name": patient["name"]
             },
-            "medicamentos": medicine_list
+            "medicines": medicine_list
         }), 200
 
     except Exception as e:
         return jsonify({
-            "erro": str(e)
+            "error": str(e)
         }), 500
 
     finally:
@@ -237,9 +224,9 @@ def list_patient_medicines(patient_id):
 
 
 #PACIENTE CONSULTA OS PROPRIOS MEDICAMENTOS
-@medicines_bp.route("/medicamentos/meus-medicamentos", methods=['GET'])
+@medicines_bp.route("/my-medicines", methods=['GET'])
 @jwt_required()
-@roles_required("paciente")
+@roles_required("patient")
 def my_medicines():
     connection = None
 
@@ -250,50 +237,37 @@ def my_medicines():
         cursor = connection.cursor()
 
         #BUSCA PACIENTE LOGADO
-        patient, error, role_name = validate_user_role(cursor, patient_id, "paciente")
+        patient, error, role_name = validate_user_role(cursor, patient_id, "patient")
 
         # RETORNA O ERRO SE A ROLE NAO EXISTIR
         if error:
             return error_role(error, role_name, patient)
 
         #BUSCA O MEDICAMENTO DO PACIENTE
-        cursor.execute("""
-            SELECT 
-                id,
-                nome,
-                dosagem,
-                horario,
-                obs,
-                status
-            FROM medicamentos
-            WHERE paciente_id = ?
-            ORDER BY id DESC
-        """, (patient_id,))
-
-        medicines = cursor.fetchall()
+        medicines = get_medicines_by_patient_id(cursor, patient_id)
 
         if not medicines:
             return jsonify({
-                "paciente": {
+                "patient": {
                     "id": patient["id"],
-                    "nome": patient["nome"]
+                    "name": patient["name"]
                 },
-                "medicamentos": []
+                "medicines": []
             }), 200
 
         medicine_list = [dict(medicine) for medicine in medicines]
 
         return jsonify({
-            "paciente":{
+            "patient":{
                 "id": patient["id"],
-                "nome": patient["nome"]
+                "name": patient["name"]
             },
-            "medicamentos": medicine_list
+            "medicines": medicine_list
         }), 200
 
     except Exception as e:
         return jsonify({
-            "erro": str(e)
+            "error": str(e)
         }), 500
 
     finally:
@@ -301,9 +275,9 @@ def my_medicines():
             connection.close()
 
 #CUIDADOR VERIFICA OS MEDICAMENTOS DO SEUS PACIENTES
-@medicines_bp.route("/medicamentos/meus-pacientes", methods=['GET'])
+@medicines_bp.route("/my-patients-medicines", methods=['GET'])
 @jwt_required()
-@roles_required("cuidador")
+@roles_required("caregiver")
 def my_patients_medicines():
     connection = None
 
@@ -315,47 +289,22 @@ def my_patients_medicines():
 
 
         # VERIFICA SE O ID INFORMADO COMO CUIDADOR EXISTE
-        caregiver, error, role_name = validate_user_role(cursor, caregiver_id, "cuidador")
+        caregiver, error, role_name = validate_user_role(cursor, caregiver_id, "caregiver")
 
         # RETORNA O ERRO SE A ROLE NAO EXISTIR
         if error:
             return error_role(error, role_name, caregiver)
 
         #BUSCAR OS MEDICAMENTOS DOS PACIENTES VINCULADOS
-        cursor.execute("""
-            SELECT 
-                m.id,
-                m.nome,
-                m.dosagem,
-                m.horario,
-                m.obs,
-                m.status,
-
-                p.id AS paciente_id,
-                p.nome AS paciente_nome
-            
-            FROM medicamentos m
-
-            JOIN cuidadores_pacientes cp
-                ON cp.paciente_id = m.paciente_id
-            
-            JOIN usuarios p
-                ON p.id = m.paciente_id
-            
-            WHERE cp.cuidador_id = ?
-
-            ORDER BY p.nome, m.id DESC
-        """, (caregiver_id,))        
-
-        medicines = cursor.fetchall()
+        medicines = get_medicines_by_caregiver(cursor, caregiver_id)
 
         if not medicines:
             return jsonify({
-                "cuidador": {
+                "caregiver": {
                     "id": caregiver["id"],
-                    "nome": caregiver["nome"]
+                    "name": caregiver["name"]
                 },
-                "medicamentos": []
+                "medicines": []
             }), 200
 
         medicine_list = []
@@ -363,31 +312,31 @@ def my_patients_medicines():
         for medicine in medicines:
             medicine_list.append({
                 "id": medicine["id"],
-                "nome": medicine["nome"],
-                "dosagem": medicine["dosagem"],
-                "horario": medicine["horario"],
-                "obs": medicine["obs"],
-                "status": medicine["status"],
+                "name": medicine["name"],
+                "dosage": medicine["dosage"],
+                "schedule_time": medicine["schedule_time"],
+                "notes": medicine["notes"],
+                "active": medicine["active"],
 
-                "paciente": {
-                    "id": medicine["paciente_id"],
-                    "nome": medicine["paciente_nome"]
+                "patient": {
+                    "id": medicine["patient_id"],
+                    "name": medicine["patient_name"]
                 }
             })
 
         return jsonify({
-            "cuidador": {
+            "caregiver": {
                 "id": caregiver["id"],
-                "nome": caregiver["nome"]
+                "name": caregiver["name"]
             },
 
-            "medicamentos": medicine_list
+            "medicines": medicine_list
         }), 200
 
     except Exception as e:
 
         return jsonify({
-            "erro": str(e)
+            "error": str(e)
         }), 500
     
     finally:
@@ -395,7 +344,7 @@ def my_patients_medicines():
             connection.close()
         
 #EDITA UM MEDICAMENTO
-@medicines_bp.route("/medicamentos/<int:id>", methods=['PATCH'])
+@medicines_bp.route("/<int:medicine_id>", methods=['PATCH'])
 @jwt_required()
 @roles_required("admin")
 def edit_medicine(medicine_id):
@@ -406,55 +355,48 @@ def edit_medicine(medicine_id):
 
         if not data:
             return jsonify({
-                "erro": "Dados não encontrados."
+                "error": "Dados não encontrados."
             }), 400
 
         connection = connect()
         cursor = connection.cursor()
 
         #VERIFICA SE O MEDICAMENTO EXISTE
-        cursor.execute("""
-            SELECT id, paciente_id, nome
-            FROM medicamentos
-            WHERE id =?
-        """,(medicine_id,))
-
-        medicine = cursor.fetchone()
+        medicine = validate_medicine(cursor, medicine_id)
 
         if not medicine:
             return jsonify({
-                "erro": "Medicamento não encontrado."
+                "error": "Medicamento não encontrado."
             }), 404
 
         #CAMPOS QUE PODE SER EDITADOS
         allowed_fields = [
-            "nome",
-            "dosagem",
-            "horario",
-            "obs",
-            "status"
+            "name",
+            "dosage",
+            "schedule_time",
+            "notes",
+            "active"
         ]
 
         #VERIFICA SE FOI ENVIADO CAMPO NAO PERMITIDO
         for field in data:
             if field not in allowed_fields:
                 return jsonify({
-                    "erro": f"O campo '{field}' não pode ser editado."
+                    "error": f"O campo '{field}' não pode ser editado."
                 }), 400
 
         #CAMPOS NAO PODEM FICAR VAZIOS
         non_empty_fields = [
-            "nome",
-            "dosagem",
-            "horario",
-            "status"
+            "name",
+            "dosage",
+            "schedule_time",
         ]
 
         error = validate_non_empty_fields(data, non_empty_fields)
 
         if error:
             return jsonify({
-                "erro": error
+                "error": error
             }), 400
             
         fields = []
@@ -462,30 +404,24 @@ def edit_medicine(medicine_id):
 
         for field in allowed_fields:
             if field in data:
-                fields.append(f"{field} = ?")
+                fields.append(f"{field} = %s")
                 values.append(data[field])
 
         #VERIFICA SE ALGUM CAMPO VÁLIDO FOI ENVIADO
         if not fields:
             return jsonify({
-                "erro": "Nenhum campo válido foi enviado para edição."
+                "error": "Nenhum campo válido foi enviado para edição."
             }), 400
 
-        values.append(medicine_id)
-
-        #VAI ATUALIZAR A TABELA
-        cursor.execute(f"""
-            UPDATE medicamentos
-            SET {", ".join(fields)}
-            WHERE id =?
-        """, values)
+        #ATUALIZA TABELA DE MEDICAMENTOS
+        update_medicine(cursor, medicine_id, fields, values)
 
         connection.commit()
 
         return jsonify({
-            "msg": "Medicamento atualizado com sucesso.",
-            "medicamento_id": medicine_id,
-            "campos_atualizados": data
+            "message": "Medicamento atualizado com sucesso.",
+            "medicine_id": medicine_id,
+            "updated_fields": data
         }), 200
 
     except Exception as e:
@@ -493,7 +429,7 @@ def edit_medicine(medicine_id):
             connection.rollback()
 
         return jsonify({
-            "erro": str(e)
+            "error": str(e)
         }), 500
 
     finally:
@@ -501,7 +437,7 @@ def edit_medicine(medicine_id):
             connection.close()
 
 #EXCLUIR UM MEDICAMENTO
-@medicines_bp.route("/medicamentos/desativar/<int:id>", methods=['DELETE'])
+@medicines_bp.route("/<int:medicine_id>", methods=['DELETE'])
 @jwt_required()
 @roles_required("admin")
 def disable_medicine(medicine_id):
@@ -512,46 +448,31 @@ def disable_medicine(medicine_id):
         cursor = connection.cursor()
 
         #VERIFICAR SE O MEDICAMENTO EXISTE
-        cursor.execute("""
-            SELECT 
-                id,
-                nome, 
-                paciente_id, 
-                status
-            FROM medicamentos
-            WHERE id = ?
-        """, (medicine_id,))
-
-        medicine = cursor.fetchone()
+        medicine = validate_medicine(cursor, medicine_id)
 
         if not medicine:
             return jsonify({
-                "erro": "Medicamento não encontrado."
+                "error": "Medicamento não encontrado."
             }), 404
 
         #VERIFICA SE JA ESTA INATIVO
-        if medicine["status"] == "inativo":
+        if not medicine["active"]:
             return jsonify({
-                "erro": "Este medicamento já está inativo."
+                "error": "Este medicamento já está inativo."
             }), 400
             
         #DESATIVA O MEDICAMENTO
-        cursor.execute("""
-            UPDATE medicamentos
-            SET status = 'inativo'
-            WHERE id = ?
-        """, (medicine_id,))
+        set_medicine_inactive(cursor, medicine_id)
 
         connection.commit()
 
         return jsonify({
-            "msg": "Medicamento desativado com sucesso.",
+            "message": "Medicamento desativado com sucesso.",
 
-            "medicamento": {
+            "medicine": {
                 "id": medicine["id"],
-                "nome": medicine["nome"],
-                "paciente_id": medicine["paciente_id"],
-                "status": "inativo"
+                "name": medicine["name"],
+                "patient_id": medicine["patient_id"]
             }
         }), 200
 
@@ -560,7 +481,7 @@ def disable_medicine(medicine_id):
             connection.rollback()
 
         return jsonify({
-            "erro": str(e)
+            "error": str(e)
         }), 500
 
     finally:
