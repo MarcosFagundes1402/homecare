@@ -55,7 +55,7 @@ def get_user_by_email(cursor, email):
 # BUSCA TODOS OS USUÁRIOS
 def get_all_users(cursor):
     cursor.execute("""
-        SELECT 
+        SELECT
             id,
             name,
             email,
@@ -147,7 +147,7 @@ def update_user_password(cursor, user_id, password_hash):
 # BUSCA TODOS OS USUÁRIOS COM ROLE DE PACIENTE
 def get_patient_data(cursor):
     cursor.execute("""
-        SELECT 
+        SELECT
             id,
             name,
             cpf,
@@ -165,7 +165,7 @@ def get_patient_data(cursor):
 # BUSCA OS DADOS DE UM PACIENTE PELO ID
 def get_patient_data_by_id(cursor, user_id):
     cursor.execute("""
-            SELECT 
+            SELECT
                 id,
                 name,
                 cpf,
@@ -177,13 +177,13 @@ def get_patient_data_by_id(cursor, user_id):
             WHERE role = 'patient'
             AND id = %s
         """, (user_id,))
-    
+
     return cursor.fetchone()
 
 # BUSCA TODOS OS USUÁRIOS COM ROLE DE CUIDADOR
 def get_caregiver_data(cursor):
     cursor.execute("""
-            SELECT 
+            SELECT
                 id,
                 name,
                 cpf,
@@ -194,13 +194,13 @@ def get_caregiver_data(cursor):
             FROM users
             WHERE role = 'caregiver'
         """)
-    
+
     return cursor.fetchall()
 
 # BUSCA OS DADOS DE UM CUIDADOR PELO ID
 def get_caregiver_data_by_id(cursor, user_id):
     cursor.execute("""
-            SELECT 
+            SELECT
                 id,
                 name,
                 cpf,
@@ -347,8 +347,8 @@ def close_link_history(cursor, link_id):
 # VERIDICA SE O MEDICAMENTO JA ESTÁ CADASTRADO
 def get_active_medicine(cursor, patient_id, name, schedule_time):
     cursor.execute("""
-        SELECT 
-            id, 
+        SELECT
+            id,
             disage
         FORM medicienes
         WHERE patient_id = %s
@@ -384,12 +384,12 @@ def register_medicine(cursor, patient_id, name, dosage, schedule_time, notes):
     ))
 
     return cursor.fetchone()["id"]
-    
+
 # BUSCA TODOS OS MEDICAMENTOS ATIVOS
 def get_medicines_data(cursor):
 
     cursor.execute("""
-        SELECT 
+        SELECT
             id,
             patient_id,
             name,
@@ -407,7 +407,7 @@ def get_medicines_data(cursor):
 def get_medicines_by_patient_id(cursor, patient_id):
 
     cursor.execute("""
-        SELECT 
+        SELECT
             id,
             name,
             dosage,
@@ -455,9 +455,9 @@ def get_medicines_by_caregiver(cursor, caregiver_id):
 # VERIFICA SE O MEDICAMENTO EXISTE
 def validate_medicine(cursor, medicine_id):
     cursor.execute("""
-        SELECT 
-            id, 
-            patient_id, 
+        SELECT
+            id,
+            patient_id,
             name,
             active
         FROM medicines
@@ -471,7 +471,7 @@ def update_medicine(cursor, medicines_id, fields, values):
     params = values + [medicines_id]
 
     cursor.execute(f"""
-        UPDATE medicines 
+        UPDATE medicines
         SET {", ".join(fields)}
         WHERE id = %s
     """, params)
@@ -483,3 +483,165 @@ def set_medicine_inactive(cursor, medicine_id):
         SET active = false
         WHERE id = %s
     """, (medicine_id,))
+
+# REGISTRA UM NOVO RELATORIO
+def register_daily_report(
+        cursor,
+        link_id,
+        created_by_user_id,
+        food,
+        hygiene,
+        blood_pressure,
+        glucose,
+        temperature,
+        observations
+):
+    cursor.execute("""
+        INSERT INTO daily_reports (
+            link_id,
+            created_by_user_id,
+            food,
+            hygiene,
+            blood_pressure,
+            glucose,
+            temperature,
+            observations,
+            report_date,
+            report_time
+        )
+        VALUES (
+            %s, %s, %s, %s, %s,
+            %s, %s, %s,
+            CURRENT_DATE,
+            CURRENT_TIME
+        )
+        RETURNING id
+    """, (
+        link_id,
+        created_by_user_id,
+        food,
+        hygiene,
+        blood_pressure,
+        glucose,
+        temperature,
+        observations
+    ))
+
+    return cursor.fetchone()["id"]
+
+# BUSCA OS RELATÓRIOS DIÁRIOS DE UM PACIENTE
+def fetch_daily_reports_by_patient(cursor, patient_id):
+    cursor.execute("""
+        SELECT
+            dr.id,
+            dr.food,
+            dr.hygiene,
+            dr.blood_pressure,
+            dr.glucose,
+            dr.temperature,
+            dr.observations,
+            dr.report_date,
+            dr.report_time,
+
+            u.id AS created_by_user_id,
+            u.name AS created_by_user_name,
+            u.role AS created_by_user_role
+
+        FROM daily_reports dr
+
+        JOIN caregiver_patient_links cpl
+            ON cpl.id = dr.link_id
+
+        JOIN users u
+            ON u.id = dr.created_by_user_id
+
+        WHERE cpl.patient_id = %s
+        AND dr.active = true
+
+        ORDER BY dr.id DESC
+    """, (patient_id,))
+
+    return cursor.fetchall()
+
+# BUSCA TODOS OS RELATÓRIOS DE TODOS OS PACIENTES
+def fetch_all_daily_reports(cursor):
+    cursor.execute("""
+        SELECT
+            dr.id,
+            dr.food,
+            dr.hygiene,
+            dr.blood_pressure,
+            dr.glucose,
+            dr.temperature,
+            dr.observations,
+            dr.report_date,
+            dr.report_time,
+
+            p.id AS patient_id,
+            p.name AS patient_name,
+
+            u.id AS created_by_user_id,
+            u.name AS created_by_user_name,
+            u.role AS created_by_user_role
+
+        FROM daily_reports dr
+
+        JOIN caregiver_patient_links cpl
+            ON cpl.id = dr.link_id
+
+        JOIN users p
+            ON p.id = cpl.patient_id
+
+        JOIN users u
+            ON u.id = dr.created_by_user_id
+
+        ORDER BY dr.id DESC
+    """)
+
+    return cursor.fetchall()
+
+# ATUALIZA O RELATORIO
+def update_daily_report(cursor, report_id, fields, values):
+    params = values + [report_id]
+
+    cursor.execute(f"""
+        UPDATE daily_reports
+        SET {", ".join(fields)}
+        WHERE ID = %s
+    """, params)
+
+# BUSCA UM RELATÓRIO DIÁRIO PELO ID
+def fetch_daily_report_by_id(cursor, report_id):
+    cursor.execute("""
+        SELECT
+            dr.id,
+            dr.link_id,
+            dr.created_by_user_id,
+            dr.food,
+            dr.hygiene,
+            dr.blood_pressure,
+            dr.glucose,
+            dr.temperature,
+            dr.observations,
+            dr.report_date,
+            dr.report_time,
+            dr.active,
+
+            cpl.patient_id
+
+        FROM daily_reports dr
+
+        JOIN caregiver_patient_links cpl
+            ON cpl.id = dr.link_id
+
+        WHERE dr.id = %s
+    """, (report_id,))
+
+    return cursor.fetchone()
+
+def set_daily_report_inactive(cursor, report_id):
+    cursor.execute("""
+        UPDATE daile_reports
+        SET active = false
+        WHERE id = %s
+    """, (report_id,))
