@@ -639,9 +639,279 @@ def fetch_daily_report_by_id(cursor, report_id):
 
     return cursor.fetchone()
 
+# DESATIVA O RELATORIO
 def set_daily_report_inactive(cursor, report_id):
     cursor.execute("""
         UPDATE daile_reports
         SET active = false
         WHERE id = %s
     """, (report_id,))
+
+# VERIFICA SE EXISTE UMA ADMINISTRACAO NO MESMO HORARIO
+def get_existing_administration(cursor, medicine_id, link_id):
+    cursor.execute("""
+        SELECT id
+        FROM medicine_administrations
+        WHERE medicine_id = %s
+        AND link_id = %s
+        AND administration_date = CURRENT_DATE
+        AND EXTRACT(HOUR FROM administration_time) =
+            EXCTRACT(HOUR FROM CURRENT_TIME)
+        AND EXTRACT(MINUTE FROM administration_time) =
+            EXCTRACT(MINUTE FROM CURRENT_TIME)
+        AND active = true
+    """,(
+        medicine_id,
+        link_id
+    ))
+
+    return cursor.fetchone()
+
+# REGISTRAR ADMINISTRACAO
+def create_medicine_administration(
+        cursor,
+        medicine_id,
+        link_id,
+        created_by_user_id,
+        dosage_given,
+        schedule_time,
+        notes
+):
+    cursor.execute("""
+        INSERT INTO medicine_administrations
+            medicine_id,
+            link_id,
+            created_by_user_id,
+            dosage_given,
+            schedule_time,
+            notes,
+            administration_date,
+            administration_time
+        VALUES (%s, %s, %s, %s, %s, %s, CURRENT_DATE, CURRENT_TIME)
+        RETURNING id
+    """,(
+        medicine_id,
+        link_id,
+        created_by_user_id,
+        dosage_given,
+        schedule_time,
+        notes
+    ))
+
+    return cursor.fetchone()["id"]
+
+# BUSCA TODAS AS ADMINISTRAÇÕES DE MEDICAMENTOS
+def fetch_all_medicine_administrations(cursor):
+    cursor.execute("""
+        SELECT
+            ma.id,
+            ma.medicine_id,
+            ma.link_id,
+            ma.created_by_user_id,
+            ma.dosage_given,
+            ma.schedule_time,
+            ma.notes,
+            ma.administration_date,
+            ma.administration_time,
+            ma.active,
+
+            m.name AS medicine_name,
+
+            p.id AS patient_id,
+            p.name AS patient_name,
+
+            u.id AS created_by_user_id,
+            u.name AS created_by_user_name,
+            u.role AS created_by_user_role
+
+        FROM medicine_administrations ma
+
+        JOIN medicines m
+            ON m.id = ma.medicine_id
+
+        JOIN caregiver_patient_links cpl
+            ON cpl.id = ma.link_id
+
+        JOIN users p
+            ON p.id = cpl.patient_id
+
+        JOIN users u
+            ON u.id = ma.created_by_user_id
+
+        ORDER BY ma.id DESC
+    """)
+
+    return cursor.fetchall()
+
+# BUSCA ADMINISTRACAO POR PACIENTE
+def fetch_medicine_administrations_by_patient(cursor, patient_id):
+    cursor.execute("""
+        SELECT
+            ma.id,
+            ma.medicine_id,
+            ma.link_id,
+            ma.created_by_user_id,
+            ma.dosage_given,
+            ma.schedule_time,
+            ma.notes,
+            ma.administration_date,
+            ma.administration_time,
+            ma.active,
+
+            m.name AS medicine_name,
+
+            p.id AS patient_id,
+            p.name AS patient_name,
+
+            u.id AS created_by_user_id,
+            u.name AS created_by_user_name,
+            u.role AS created_by_user_role
+
+        FROM medicine_administrations ma
+
+        JOIN medicines m
+            ON m.id = ma.medicine_id
+
+        JOIN caregiver_patient_links cpl
+            ON cpl.id = ma.link_id
+
+        JOIN users p
+            ON p.id = cpl.patient_id
+
+        JOIN users u
+            ON u.id = ma.created_by_user_id
+
+        WHERE cpl.patient_id = %s
+
+        ORDER BY ma.id DESC
+    """, (patient_id,))
+
+    return cursor.fetchall()
+
+# BUSCAR ADMINISTRACAO POR CUIDADOR
+def fetch_medicine_administrations_by_caregiver(cursor, caregiver_id):
+    cursor.execute(
+        """
+        SELECT
+            ma.id,
+            ma.patient_id,
+            ma.medicine_id,
+            ma.schedule_time,
+            ma.administration_time,
+            ma.dosage_given,
+            ma.notes,
+            ma.active,
+
+            p.name AS patient_name,
+
+            m.name AS medicine_name,
+
+            u.id AS created_by_user_id,
+            u.name AS created_by_user_name,
+            u.role AS created_by_user_role
+
+        FROM medicine_administration ma
+
+        JOIN caregivers_patient cp
+            ON cp.patient_id = ma.patient_id
+
+        JOIN users p
+            ON p.id = ma.patient_id
+
+        JOIN medicines m
+            ON m.id = ma.medicine_id
+
+        JOIN users u
+            ON u.id = ma.created_by_user_id
+
+        WHERE cp.caregiver_id = %s
+
+        ORDER BY ma.id DESC
+        """,
+        (caregiver_id,),
+    )
+
+    return cursor.fetchall()
+
+# BUSCA ADMINISTRACAO POR ID
+def fetch_medicine_administration_by_id(cursor, administration_id):
+    cursor.execute("""
+        SELECT
+            id,
+            patient_id,
+            medicine_id,
+            created_by_user_id,
+            schedule_time,
+            dosage_given,
+            notes,
+            active
+        FROM medicine_administrations
+        WHERE id %s
+    """,(administration_id,))
+
+    return cursor.fetchone()
+
+# ATUALIZA A ADMINISTRACOES
+def update_medicine_administration(cursor, fields, values):
+    cursor.execute(f"""
+        UPDATE medicine_administration
+        SET {", ".join(fields)}
+        WHERE id = %s
+    """, values)
+
+def set_medicine_administration_inactive(cursor, administration_id):
+    cursor.execute("""
+        UPDATE medicine_administration
+        SET active = FALSE
+        WHERE id = %s
+    """, (administration_id,))
+
+# BUSCA ADMINISTRAÇÕES DE UM PACIENTE VINCULADO AO CUIDADOR
+def fetch_medicine_administrations_by_caregiver_and_patient(
+    cursor, caregiver_id, patient_id
+):
+    cursor.execute(
+        """
+        SELECT
+            ma.id,
+            ma.medicine_id,
+            ma.link_id,
+            ma.created_by_user_id,
+            ma.dosage_given,
+            ma.schedule_time,
+            ma.notes,
+            ma.administration_date,
+            ma.administration_time,
+            ma.active,
+
+            m.name AS medicine_name,
+
+            p.id AS patient_id,
+            p.name AS patient_name,
+
+            u.name AS created_by_user_name,
+            u.role AS created_by_user_role
+
+        FROM medicine_administrations ma
+
+        JOIN medicines m
+            ON m.id = ma.medicine_id
+
+        JOIN caregiver_patient_links cpl
+            ON cpl.id = ma.link_id
+
+        JOIN users p
+            ON p.id = cpl.patient_id
+
+        JOIN users u
+            ON u.id = ma.created_by_user_id
+
+        WHERE cpl.caregiver_id = %s
+          AND cpl.patient_id = %s
+
+        ORDER BY ma.id DESC
+    """,
+        (caregiver_id, patient_id),
+    )
+
+    return cursor.fetchall()
