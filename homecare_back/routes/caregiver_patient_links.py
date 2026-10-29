@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 from database.connect import connect
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from utils.permissions import roles_required
-from utils.response import error_role
+from utils.response import error_role, validate_required_fields
 from utils.queries import (
         get_caregiver_patient_link,
         validate_user_role,
@@ -11,7 +11,8 @@ from utils.queries import (
         get_caregivers_by_patient,
         disable_link,
         create_link_history,
-        close_link_history
+        close_link_history,
+        reactive_link
     )
 
 
@@ -33,9 +34,13 @@ def create_link():
                 "error": "Dados não encontrados."
             }), 400
 
-        if "caregiver_id" not in data or "patient_id" not in data:
+        error = validate_required_fields(
+            data, ["caregiver_id", "patient_id"]
+        )
+
+        if error:
             return jsonify({
-                "error": "OS IDs de cuidador e paciente são obrigatórios."
+                "error": error
             }), 400
 
         connection = connect()
@@ -69,9 +74,28 @@ def create_link():
         existing_link = get_caregiver_patient_link(cursor, data["caregiver_id"], data["patient_id"])
 
         if existing_link:
+            # VINCULO JA ESTA ATIVO
+            if existing_link["active"]:
+                return jsonify({
+                    "error": "Este cuidador já está vinculado a este paciente."
+                }), 409
+            # SE ESTIVER INATIVO REATIVAR O LINK
+            reactived = reactive_link(cursor, existing_link["id"])
+
+            if not reactived:
+                return jsonify({
+                    "error": "Não foi possível reativar o vínculo."
+                }), 409
+
+            # REGISTRA HISTORICO
+            create_link_history(cursor, existing_link["id"])
+
+            connection.commit()
+
             return jsonify({
-                "error": "Este cuidador já está vinculado a este paciente."
-            }), 409
+                "message": "Vínculo reativado com sucesso.",
+                "link_id": existing_link["id"]
+            })
 
         # CRIA O VINCULO
         link_id = generate_link(cursor, data["caregiver_id"], data["patient_id"])
@@ -246,7 +270,7 @@ def my_caregivers():
             connection.close()
 
 # REMOVE O VINCULO ENTRE CUIDADOR E PACIENTE
-@caregiver_patient_bp.route("", methods=["DELETE"])
+@caregiver_patient_bp.route("/disable-link", methods=["DELETE"])
 @jwt_required()
 @roles_required("admin")
 def remove_link():

@@ -3,7 +3,7 @@ from routes.login import auth_bp
 from routes.patients import patient_bp
 from routes.caregiver import caregiver_bp
 from routes.caregiver_patient_links import caregiver_patient_bp
-from routes.medication import medicines_bp
+from routes.medicine import medicines_bp
 from routes.medicine_administration import administration_medications_bp
 from routes.daily_reports import daily_reports_bp
 

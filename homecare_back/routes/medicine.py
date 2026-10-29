@@ -26,7 +26,7 @@ from utils.queries import (
 medicines_bp = Blueprint("medicines",__name__, url_prefix="/medicines")
 
 #CRIA MEDICAMENTO PARA UM PACIENTE
-@medicines_bp.route("", methods=['POST'])
+@medicines_bp.route("/create-medicine", methods=['POST'])
 @jwt_required()
 @roles_required("admin")
 def create_medicine():
@@ -53,7 +53,7 @@ def create_medicine():
             return jsonify({
                 "error": error
             }), 400
- 
+
 
         connection = connect()
         cursor = connection.cursor()
@@ -68,7 +68,7 @@ def create_medicine():
             return jsonify({
                 "error": "Não é possivel cadastrar medicamento para paciente inativo."
             }), 400
-        
+
         #VERIFICA SE O MEDICAMENTO JÁ ESTÁ CADASTRADO
         existing_medicine = get_active_medicine(cursor, data["patient_id"], data["name"], data["schedule_time"])
 
@@ -79,7 +79,7 @@ def create_medicine():
                 "dosage": existing_medicine["dosage"],
                 "suggestion": "Edite o medicamento existente caso queira alterar a dosagem."
             }), 409
-        
+
         #CRIA O MEDICAMENTO
         medicine_id = register_medicine(
             cursor,
@@ -135,15 +135,8 @@ def list_medicines():
 
         medicines = get_medicines_data(cursor)
 
-        if not medicines:
-            return jsonify({
-                "medicines": []
-            }), 200
-
-        medicine_list = [dict(medicine) for medicine in medicines]
-
         return jsonify({
-            "medicines": medicine_list
+            "medicines": medicines
         }), 200
 
     except Exception as e:
@@ -153,9 +146,9 @@ def list_medicines():
     finally:
         if connection:
             connection.close()
-        
+
 # ADMIN CONSULTAR MEDICAMENTOS DE UM PACIENTE
-@medicines_bp.route("/<int:patient_id>", methods=['GET'])
+@medicines_bp.route("/patient-consult/<int:patient_id>", methods=['GET'])
 @jwt_required()
 @roles_required("admin", "caregiver")
 def list_patient_medicines(patient_id):
@@ -168,7 +161,7 @@ def list_patient_medicines(patient_id):
         logged_user_id = int(get_jwt_identity())
 
         user = get_user_by_id(cursor, logged_user_id)
-        
+
         if not user:
             return jsonify({
                 "message": "Usuário não encontrado."
@@ -190,7 +183,7 @@ def list_patient_medicines(patient_id):
                  return jsonify ({
                      "error": "Você não possui vinculo com este paciente."
                  }), 403
-            
+
         # BUSCA O MEDICAMENTO DO PACIENTE
         medicines = get_medicines_by_patient_id(cursor, patient_id)
 
@@ -338,13 +331,13 @@ def my_patients_medicines():
         return jsonify({
             "error": str(e)
         }), 500
-    
+
     finally:
         if connection:
             connection.close()
-        
+
 #EDITA UM MEDICAMENTO
-@medicines_bp.route("/<int:medicine_id>", methods=['PATCH'])
+@medicines_bp.route("/edit/<int:medicine_id>", methods=['PATCH'])
 @jwt_required()
 @roles_required("admin")
 def edit_medicine(medicine_id):
@@ -398,7 +391,7 @@ def edit_medicine(medicine_id):
             return jsonify({
                 "error": error
             }), 400
-            
+
         fields = []
         values = []
 
@@ -437,7 +430,7 @@ def edit_medicine(medicine_id):
             connection.close()
 
 #EXCLUIR UM MEDICAMENTO
-@medicines_bp.route("/<int:medicine_id>", methods=['DELETE'])
+@medicines_bp.route("/disable/<int:medicine_id>", methods=['DELETE'])
 @jwt_required()
 @roles_required("admin")
 def disable_medicine(medicine_id):
@@ -460,7 +453,7 @@ def disable_medicine(medicine_id):
             return jsonify({
                 "error": "Este medicamento já está inativo."
             }), 400
-            
+
         #DESATIVA O MEDICAMENTO
         set_medicine_inactive(cursor, medicine_id)
 
@@ -487,4 +480,3 @@ def disable_medicine(medicine_id):
     finally:
         if connection:
             connection.close()
-    

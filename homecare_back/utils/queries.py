@@ -347,14 +347,12 @@ def close_link_history(cursor, link_id):
 # VERIDICA SE O MEDICAMENTO JA ESTÁ CADASTRADO
 def get_active_medicine(cursor, patient_id, name, schedule_time):
     cursor.execute("""
-        SELECT
-            id,
-            disage
-        FORM medicienes
+        SELECT *
+        FROM medicines
         WHERE patient_id = %s
-        AND name = $s
-        AND dosage = $s
-        AND schedule_time = $s
+            AND name = %s
+            AND schedule_time = %s
+            AND active = TRUE
     """, (
             patient_id,
             name,
@@ -394,42 +392,46 @@ def get_medicines_data(cursor):
             patient_id,
             name,
             dosage,
-            schedule_time,
-            notes,
-        WHERE active = true
+            schedule_time::TEXT AS schedule_time,
+            notes
         FROM medicines
+        WHERE active = TRUE
         ORDER BY name
     """)
 
     return cursor.fetchall()
 
-# BUSCA MEDICAMENTO DE UM PACIENTE
+# BUSCA MEDICAMENTOS POR PACIENTE
 def get_medicines_by_patient_id(cursor, patient_id):
-
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
             id,
+            patient_id,
             name,
             dosage,
-            schedule_time,
+            schedule_time::TEXT AS schedule_time,
             notes,
             active
         FROM medicines
-        WHERE patient_id
+        WHERE patient_id = %s
         ORDER BY id DESC
-    """, (patient_id,))
+    """,
+        (patient_id,),
+    )
 
     return cursor.fetchall()
 
 # BUSCA OS MEDICAMENTOS DOS PACIENTES VINCULADOS AO CUIDADOR
 def get_medicines_by_caregiver(cursor, caregiver_id):
 
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
             m.id,
             m.name,
             m.dosage,
-            m.schedule_time,
+            m.schedule_time::TEXT AS schedule_time,
             m.notes,
             m.active,
 
@@ -448,7 +450,9 @@ def get_medicines_by_caregiver(cursor, caregiver_id):
         AND cpl.active = true
 
         ORDER BY u.name, m.id DESC
-    """, (caregiver_id,))
+    """,
+        (caregiver_id,),
+    )
 
     return cursor.fetchall()
 
@@ -915,3 +919,15 @@ def fetch_medicine_administrations_by_caregiver_and_patient(
     )
 
     return cursor.fetchall()
+
+# REATIVAR VINCULO
+def reactive_link(cursor, link_id):
+    cursor.execute(
+        """
+        UPDATE caregiver_patient_links
+        SET active = TRUE
+        WHERE id = %s
+          AND active = FALSE
+    """,
+        (link_id,),
+    )
