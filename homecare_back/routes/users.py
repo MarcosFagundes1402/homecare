@@ -21,7 +21,7 @@ import sqlite3
 user_bp = Blueprint("users", __name__, url_prefix="/users")
 
 # CONSULTAR USUARIO (TODOS)
-@user_bp.route("", methods=['GET'])
+@user_bp.route("/list-all-users", methods=['GET'])
 @jwt_required()
 @roles_required("admin")
 def list_users():
@@ -42,7 +42,7 @@ def list_users():
             "error": str(e)
         }), 500
 
-    finally: 
+    finally:
         if connection:
             connection.close()
 
@@ -90,12 +90,12 @@ def update_user(user_id):
             return jsonify({
                 "error": "Dados não enviados"
             }), 400
-        
+
         connection = connect()
         cursor = connection.cursor()
 
         #BUSCA O USUÁRIO E A ROLE NO BANCO DE DADOS
-        user = get_user_by_id(cursor, user_id)  
+        user = get_user_by_id(cursor, user_id)
 
         if not user:
             return jsonify({
@@ -117,7 +117,7 @@ def update_user(user_id):
             return jsonify({
                 "error": error
             }), 400
-        
+
         fields = []
         values = []
 
@@ -155,7 +155,7 @@ def update_user(user_id):
         values.append(user_id)
 
         sql = f"""
-            UPDATE users 
+            UPDATE users
             SET {', '.join(fields)}
             WHERE id = %s
         """
@@ -208,16 +208,16 @@ def disable_user(user_id):
 
         #BUSCA O USUARIO E A ROLE E STATUS
         cursor.execute("""
-            SELECT 
+            SELECT
                 u.role,
                 p.status AS paciente_status,
-                c.status AS cuidador_status 
+                c.status AS cuidador_status
             FROM users u
 
-            LEFT JOIN pacientes p 
+            LEFT JOIN pacientes p
                 ON p.id = u.id
 
-            LEFT JOIN cuidadores c  
+            LEFT JOIN cuidadores c
                 ON c.id = u.id
             WHERE u.id =?
         """, (user_id,))
@@ -228,7 +228,7 @@ def disable_user(user_id):
              return jsonify({
                  "erro": "Usuário não encontrado."
              }), 404
-        
+
         role = user["role"].lower()
 
         #PEGA STATUS DE ACORDO COM A ROLE
@@ -244,12 +244,12 @@ def disable_user(user_id):
             return jsonify({
                 "erro": "Este tipo de usuário não pode ser desativado por esta rota."
             }), 400
-        
+
         if status is None:
             return jsonify({
                 "erro": "Cadastro especifíco do usuário não encontrado."
             }), 404
-        
+
         #VERIFICA SE JA ESTA INATIVO
         if status == "inativo":
             return jsonify({
@@ -271,7 +271,7 @@ def disable_user(user_id):
                 SET status = 'inativo'
                 WHERE id = ?
             """, (user_id,))
-        
+
         connection.commit()
 
         return jsonify({
@@ -290,7 +290,7 @@ def disable_user(user_id):
         }), 400
 
     except Exception as e:
-        if connection: 
+        if connection:
             connection.rollback()
 
         return jsonify({
@@ -302,7 +302,7 @@ def disable_user(user_id):
             connection.close()
 
 # CRIAR USUARIO PUBLICO
-@user_bp.route("", methods=['POST'])
+@user_bp.route("/create", methods=['POST'])
 def register():
     new_user = request.get_json()
 
@@ -310,7 +310,7 @@ def register():
 
     if error:
         return jsonify({
-            "error": error, 
+            "error": error,
         }), status
 
     return jsonify({
@@ -319,8 +319,7 @@ def register():
     }), status
 
 # CRIAR USUARIO ADMIN
-@user_bp.route("", methods=['POST'])
-@jwt_required()
+@user_bp.route("/create-admin", methods=['POST'])
 def create_user():
     new_user = request.get_json()
 
@@ -328,7 +327,7 @@ def create_user():
 
     if error:
         return jsonify({
-            "error": error, 
+            "error": error,
         }), status
 
     return jsonify({
@@ -405,7 +404,7 @@ def change_password():
             return jsonify({
                 "error": "As senhas não coincidem."
             }), 400
-        
+
         user_id = int(get_jwt_identity())
 
         connection = connect()
@@ -443,7 +442,7 @@ def change_password():
         update_user_password(cursor, user_id, new_password_hash)
 
         connection.commit()
-        
+
         return jsonify({
             "message": "Senha alterada com sucesso."
         }), 200

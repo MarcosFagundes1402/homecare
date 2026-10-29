@@ -1,4 +1,4 @@
-from connect import connect
+from database.connect import connect
 
 
 def create_users_table():
@@ -89,10 +89,10 @@ def create_caregiver_patient_table():
                 cuidador_id INTEGER NOT NULL,
                 paciente_id INTEGER NOT NULL,
 
-            FOREIGN KEY(cuidador_id) 
+            FOREIGN KEY(cuidador_id)
                 REFERENCES cuidadores(id),
 
-            FOREIGN KEY(paciente_id) 
+            FOREIGN KEY(paciente_id)
                 REFERENCES pacientes(id),
 
             UNIQUE(cuidador_id, paciente_id)
@@ -122,7 +122,7 @@ def create_medications_table():
     """)
 
     print("Tabela de medicamentos criado com sucesso.")
-    
+
     connection.commit()
     cursor.close()
     connection.close()

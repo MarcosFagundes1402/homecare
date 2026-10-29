@@ -1,24 +1,25 @@
 from flask import jsonify
 
-
 def error_role(error, role_name, user=None):
 
     if error == "nao_encontrado":
         return jsonify({
-            "erro": f"{role_name} não encontrado."
+            "error": f"{role_name} não encontrado."
         }), 404
 
     if error == "role_invalida":
-        response = {"erro": f"O usuário informado não é {role_name.lower()}."}
+        response = {
+            "error": f"O usuário informado não é {role_name.lower()}."
+        }
 
-        if user:
-            response["usuario"] = user["nome"]
+        if user is not None:
+            response["user"] = user["name"]
             response["role"] = user["role"]
 
         return jsonify(response), 400
 
     return jsonify({
-        "erro": "Erro de validação."
+        "error": "Erro de validação."
     }), 400
 
 def validate_required_fields(data, required_fields):
@@ -39,5 +40,5 @@ def validate_non_empty_fields(data, fields):
             or str(data[field]).strip() == ""
         ):
             return f"O campo '{field}' não pode ser vazio."
-        
+
     return None

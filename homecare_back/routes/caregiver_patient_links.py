@@ -12,13 +12,13 @@ from utils.queries import (
         disable_link,
         create_link_history,
         close_link_history
-    ) 
+    )
 
 
 caregiver_patient_bp = Blueprint("links", __name__, url_prefix="/links")
 
 # CRIA O VINCULO ENTRE CUIDADOR E PACIENTE
-@caregiver_patient_bp.route("", methods=["POST"])
+@caregiver_patient_bp.route("/create", methods=["POST"])
 @jwt_required()
 @roles_required("admin")
 def create_link():
@@ -52,7 +52,7 @@ def create_link():
             return jsonify({
                 "error": "Não é possível vincular um cuidador inativo."
             }), 400
-        
+
         # VERIFICA SE O ID INFORMADO COMO PACIENTE EXISTE
         patient, error, role_name = validate_user_role(cursor, data["patient_id"], "patient")
 
@@ -64,10 +64,10 @@ def create_link():
             return jsonify({
                 "error":"Não é possível vincular um paciente inativo."
             }), 400
-        
+
         # VERIFICA SE O VINCULO JÁ EXISTE
         existing_link = get_caregiver_patient_link(cursor, data["caregiver_id"], data["patient_id"])
- 
+
         if existing_link:
             return jsonify({
                 "error": "Este cuidador já está vinculado a este paciente."
@@ -78,7 +78,7 @@ def create_link():
 
         #CRIA O HISTORICO DE VINCULOS
         create_link_history(cursor, link_id)
-      
+
         connection.commit()
 
         return jsonify({
@@ -107,7 +107,7 @@ def create_link():
 
 
 # MOSTRA OS PACIENTES QUE O CUIDADOR TEM
-@caregiver_patient_bp.route("/<int:user_id>", methods=["GET"])
+@caregiver_patient_bp.route("/<int:user_id>/list-patient_caregiver", methods=["GET"])
 @jwt_required()
 @roles_required("admin")
 def list_caregiver_patients(user_id):
@@ -125,7 +125,7 @@ def list_caregiver_patients(user_id):
         if error:
             return error_role(error, role_name, caregiver)
 
-   
+
         # BUSCA OS PACIENTES VINCULADOS
         patients = get_patients_by_caregiver(cursor, user_id)
 
@@ -146,7 +146,7 @@ def list_caregiver_patients(user_id):
             connection.close()
 
 # MOSTRA QUAIS CUIDADORES CUIDAM DO PACIENTE
-@caregiver_patient_bp.route("/<int:user_id>", methods=["GET"])
+@caregiver_patient_bp.route("/<int:user_id>/list-caregiver_patient", methods=["GET"])
 @jwt_required()
 @roles_required("admin")
 def list_patient_caregivers(user_id):
@@ -195,7 +195,7 @@ def my_patients():
 
         caregiver_id = int(get_jwt_identity())
 
-        
+
         patients = get_patients_by_caregiver(cursor, caregiver_id)
 
         if not patients:
@@ -204,7 +204,7 @@ def my_patients():
         result = [dict(patient) for patient in patients]
 
         return jsonify(result), 200
-    
+
     except Exception as e:
         return jsonify({
             "error": str(e)
@@ -267,7 +267,7 @@ def remove_link():
             return jsonify({
                 "error": "OS IDs de cuidador e paciente são obrigatórios."
             }), 400
-        
+
         connection = connect()
         cursor = connection.cursor()
 
@@ -276,7 +276,7 @@ def remove_link():
 
         if error:
             return error_role(error, role_name, caregiver)
-        
+
         patient, error, role_name = validate_user_role(cursor, data["patient_id"], "patient")
 
         if error:
@@ -289,7 +289,7 @@ def remove_link():
             return jsonify({
                 "error": "Vínculo não encontrado."
             }), 404
-        
+
         if not existing_link["active"]:
             return jsonify({
                 "error": "Vínculo já está inativo."
