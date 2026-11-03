@@ -1,26 +1,31 @@
 # BUSCA UM USUÁRIO PELO ID
 def get_user_by_id(cursor, user_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT id, name, role, active
         FROM users
         WHERE id = %s
-    """, (user_id,))
+    """,
+        (user_id,),
+    )
 
     return cursor.fetchone()
 
+
 # BUSCA O VÍNCULO ENTRE UM CUIDADOR E UM PACIENTE
 def get_caregiver_patient_link(cursor, caregiver_id, patient_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT id, active
         FROM caregiver_patient_links
         WHERE caregiver_id = %s
         AND patient_id = %s
-    """,(
-        caregiver_id,
-        patient_id
-    ))
+    """,
+        (caregiver_id, patient_id),
+    )
 
     return cursor.fetchone()
+
 
 # VALIDA SE O USUÁRIO EXISTE E POSSUI A ROLE ESPERADA
 def validate_user_role(cursor, user_id, expected_role):
@@ -36,9 +41,11 @@ def validate_user_role(cursor, user_id, expected_role):
 
     return user, None, role_name
 
+
 # BUSCA UM USUÁRIO PELO E-MAIL
 def get_user_by_email(cursor, email):
-    cursor.execute("""
+    cursor.execute(
+        """
             SELECT
                 id,
                 name,
@@ -48,9 +55,12 @@ def get_user_by_email(cursor, email):
                 active
             FROM users
             WHERE email = %s
-    """, (email,))
+    """,
+        (email,),
+    )
 
     return cursor.fetchone()
+
 
 # BUSCA TODOS OS USUÁRIOS
 def get_all_users(cursor):
@@ -67,23 +77,28 @@ def get_all_users(cursor):
 
     return cursor.fetchall()
 
+
 # BUSCA OUTRO USUÁRIO COM O MESMO E-MAIL, IGNORANDO O PRÓPRIO ID
 def get_user_by_email_except_id(cursor, email, user_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT id
         FROM users
         WHERE email = %s
         AND id != %s
-    """, (
-        email,
-        user_id
-    ))
+    """,
+        (email, user_id),
+    )
 
     return cursor.fetchone()
 
+
 # CRIA UMA NOVA CONTA E RETORNA O ID DO USUÁRIO
-def create_account(cursor, name, email, password_hash, role, cpf, birth_date, phone, address):
-    cursor.execute("""
+def create_account(
+    cursor, name, email, password_hash, role, cpf, birth_date, phone, address
+):
+    cursor.execute(
+        """
         INSERT INTO users (
             name,
             email,
@@ -96,53 +111,60 @@ def create_account(cursor, name, email, password_hash, role, cpf, birth_date, ph
         )
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
         RETURNING id
-    """, (
-        name,
-        email,
-        password_hash,
-        role,
-        cpf,
-        birth_date,
-        phone,
-        address
-    ))
+    """,
+        (name, email, password_hash, role, cpf, birth_date, phone, address),
+    )
 
     return cursor.fetchone()["id"]
 
+
 # CRIA O PERFIL DE PACIENTE PARA UM USUÁRIO
 def create_patient(cursor, user_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO patients (user_id)
         VALUES (%s)
-    """, (user_id,))
+    """,
+        (user_id,),
+    )
+
 
 # CRIA O PERFIL DE CUIDADOR PARA UM USUÁRIO
 def create_caregiver(cursor, user_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO caregivers (user_id)
         VALUES (%s)
-    """, (user_id,))
+    """,
+        (user_id,),
+    )
+
 
 # BUSCA O HASH DA SENHA DE UM USUÁRIO PELO ID
 def get_user_password_by_id(cursor, user_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT id, password_hash
         FROM users
         WHERE id = %s
-    """, (user_id,))
+    """,
+        (user_id,),
+    )
 
     return cursor.fetchone()
 
+
 # ATUALIZA A SENHA DE UM USUÁRIO
 def update_user_password(cursor, user_id, password_hash):
-    cursor.execute("""
+    cursor.execute(
+        """
         UPDATE users
         SET password_hash = %s
         WHERE id = %s
-    """, (
-        password_hash,
-        user_id
-    ))
+    """,
+        (password_hash, user_id),
+    )
+
 
 # BUSCA TODOS OS USUÁRIOS COM ROLE DE PACIENTE
 def get_patient_data(cursor):
@@ -162,9 +184,11 @@ def get_patient_data(cursor):
 
     return cursor.fetchall()
 
+
 # BUSCA OS DADOS DE UM PACIENTE PELO ID
 def get_patient_data_by_id(cursor, user_id):
-    cursor.execute("""
+    cursor.execute(
+        """
             SELECT
                 id,
                 name,
@@ -176,9 +200,12 @@ def get_patient_data_by_id(cursor, user_id):
             FROM users
             WHERE role = 'patient'
             AND id = %s
-        """, (user_id,))
+        """,
+        (user_id,),
+    )
 
     return cursor.fetchone()
+
 
 # BUSCA TODOS OS USUÁRIOS COM ROLE DE CUIDADOR
 def get_caregiver_data(cursor):
@@ -197,9 +224,11 @@ def get_caregiver_data(cursor):
 
     return cursor.fetchall()
 
+
 # BUSCA OS DADOS DE UM CUIDADOR PELO ID
 def get_caregiver_data_by_id(cursor, user_id):
-    cursor.execute("""
+    cursor.execute(
+        """
             SELECT
                 id,
                 name,
@@ -211,46 +240,59 @@ def get_caregiver_data_by_id(cursor, user_id):
             FROM users
             WHERE role = 'caregiver'
             AND id = %s
-        """, (user_id,))
+        """,
+        (user_id,),
+    )
 
     return cursor.fetchone()
 
+
 # BUSCA OUTRO USUÁRIO COM O MESMO CPF, IGNORANDO O PRÓPRIO ID
 def get_user_cpf_except_id(cursor, cpf, user_id):
-    cursor.execute("""
+    cursor.execute(
+        """
                 SELECT id
                 FROM users
                 WHERE cpf = %s
                 AND id != %s
-            """, (
-                cpf,
-                user_id
-            ))
+            """,
+        (cpf, user_id),
+    )
 
     return cursor.fetchone()
+
 
 # ATUALIZA DINAMICAMENTE OS CAMPOS DE UM USUÁRIO
 def update_user_fields(cursor, user_id, fields, values):
 
     params = values + [user_id]
 
-    cursor.execute(f"""
+    cursor.execute(
+        f"""
             UPDATE users
             SET {", ".join(fields)}
             WHERE id = %s
-        """, params)
+        """,
+        params,
+    )
+
 
 # DESATIVA UM USUÁRIO
 def disable_user(cursor, user_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         UPDATE users
         SET active = false
         WHERE id = %s
-    """, (user_id,))
+    """,
+        (user_id,),
+    )
+
 
 # CRIA UM VÍNCULO ENTRE CUIDADOR E PACIENTE
 def generate_link(cursor, caregiver_id, patient_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO caregiver_patient_links(
                 caregiver_id,
                 patient_id,
@@ -259,28 +301,30 @@ def generate_link(cursor, caregiver_id, patient_id):
             )
         VALUES (%s, %s, CURRENT_DATE, CURRENT_TIME)
          RETURNING id
-    """, (
-        caregiver_id,
-        patient_id
-    ))
+    """,
+        (caregiver_id, patient_id),
+    )
 
     return cursor.fetchone()["id"]
 
+
 # DESATIVA O VÍNCULO ENTRE CUIDADOR E PACIENTE
 def disable_link(cursor, caregiver_id, patient_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         UPDATE caregiver_patient_links
         SET active = false
         WHERE caregiver_id = %s
         AND patient_id = %s
-    """,(
-        caregiver_id,
-        patient_id
-    ))
+    """,
+        (caregiver_id, patient_id),
+    )
+
 
 # BUSCA OS PACIENTES ATIVOS VINCULADOS A UM CUIDADOR
 def get_patients_by_caregiver(cursor, caregiver_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
             u.id,
             u.name,
@@ -294,13 +338,17 @@ def get_patients_by_caregiver(cursor, caregiver_id):
             ON cpl.patient_id = u.id
         WHERE cpl.caregiver_id = %s
         AND cpl.active = true
-    """, (caregiver_id,))
+    """,
+        (caregiver_id,),
+    )
 
     return cursor.fetchall()
 
+
 # BUSCA OS CUIDADORES ATIVOS VINCULADOS A UM PACIENTE
 def get_caregivers_by_patient(cursor, patient_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
             u.id,
             u.name,
@@ -314,13 +362,17 @@ def get_caregivers_by_patient(cursor, patient_id):
             ON cpl.caregiver_id = u.id
         WHERE cpl.patient_id = %s
         AND cpl.active = true
-    """, (patient_id,))
+    """,
+        (patient_id,),
+    )
 
     return cursor.fetchall()
 
+
 # CRIA UM NOVO PERÍODO NO HISTÓRICO DE UM VÍNCULO
 def create_link_history(cursor, link_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO caregiver_patient_link_history(
             link_id,
             started_date,
@@ -328,13 +380,17 @@ def create_link_history(cursor, link_id):
             )
         VALUES (%s, CURRENT_DATE, CURRENT_TIME)
          RETURNING id
-    """, (link_id,))
+    """,
+        (link_id,),
+    )
 
     return cursor.fetchone()["id"]
 
+
 # FINALIZA O PERÍODO ATIVO NO HISTÓRICO DE UM VÍNCULO
 def close_link_history(cursor, link_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         UPDATE caregiver_patient_link_history
         SET
             ended_date = CURRENT_DATE,
@@ -342,28 +398,32 @@ def close_link_history(cursor, link_id):
         WHERE link_id = %s
         AND ended_date IS NULL
         AND ended_time IS NULL
-    """, (link_id,))
+    """,
+        (link_id,),
+    )
+
 
 # VERIDICA SE O MEDICAMENTO JA ESTÁ CADASTRADO
 def get_active_medicine(cursor, patient_id, name, schedule_time):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT *
         FROM medicines
         WHERE patient_id = %s
             AND name = %s
             AND schedule_time = %s
             AND active = TRUE
-    """, (
-            patient_id,
-            name,
-            schedule_time
-        ))
+    """,
+        (patient_id, name, schedule_time),
+    )
 
     return cursor.fetchone()
 
+
 # CRIAR O MEDICAMENTO
 def register_medicine(cursor, patient_id, name, dosage, schedule_time, notes):
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO medicines(
             patient_id,
             name,
@@ -373,15 +433,12 @@ def register_medicine(cursor, patient_id, name, dosage, schedule_time, notes):
         )
         VALUES (%s, %s, %s, %s, %s)
         RETURNING id
-    """,(
-        patient_id,
-        name,
-        dosage,
-        schedule_time,
-        notes
-    ))
+    """,
+        (patient_id, name, dosage, schedule_time, notes),
+    )
 
     return cursor.fetchone()["id"]
+
 
 # BUSCA TODOS OS MEDICAMENTOS ATIVOS
 def get_medicines_data(cursor):
@@ -400,6 +457,7 @@ def get_medicines_data(cursor):
     """)
 
     return cursor.fetchall()
+
 
 # BUSCA MEDICAMENTOS POR PACIENTE
 def get_medicines_by_patient_id(cursor, patient_id):
@@ -421,6 +479,7 @@ def get_medicines_by_patient_id(cursor, patient_id):
     )
 
     return cursor.fetchall()
+
 
 # BUSCA OS MEDICAMENTOS DOS PACIENTES VINCULADOS AO CUIDADOR
 def get_medicines_by_caregiver(cursor, caregiver_id):
@@ -456,9 +515,11 @@ def get_medicines_by_caregiver(cursor, caregiver_id):
 
     return cursor.fetchall()
 
+
 # VERIFICA SE O MEDICAMENTO EXISTE
 def validate_medicine(cursor, medicine_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
             id,
             patient_id,
@@ -466,41 +527,53 @@ def validate_medicine(cursor, medicine_id):
             active
         FROM medicines
         WHERE id = %s
-    """, (medicine_id,))
+    """,
+        (medicine_id,),
+    )
 
     return cursor.fetchone()
+
 
 # ATUALIZA A TABELA DE MEDICAMENTOS
 def update_medicine(cursor, medicines_id, fields, values):
     params = values + [medicines_id]
 
-    cursor.execute(f"""
+    cursor.execute(
+        f"""
         UPDATE medicines
         SET {", ".join(fields)}
         WHERE id = %s
-    """, params)
+    """,
+        params,
+    )
+
 
 # ATUALIZA MEDICAMENTO COM STATUS DE DESATIVADO
 def set_medicine_inactive(cursor, medicine_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         UPDATE medicines
         SET active = false
         WHERE id = %s
-    """, (medicine_id,))
+    """,
+        (medicine_id,),
+    )
+
 
 # REGISTRA UM NOVO RELATORIO
 def register_daily_report(
-        cursor,
-        link_id,
-        created_by_user_id,
-        food,
-        hygiene,
-        blood_pressure,
-        glucose,
-        temperature,
-        observations
+    cursor,
+    link_id,
+    created_by_user_id,
+    food,
+    hygiene,
+    blood_pressure,
+    glucose,
+    temperature,
+    observations,
 ):
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO daily_reports (
             link_id,
             created_by_user_id,
@@ -520,22 +593,26 @@ def register_daily_report(
             CURRENT_TIME
         )
         RETURNING id
-    """, (
-        link_id,
-        created_by_user_id,
-        food,
-        hygiene,
-        blood_pressure,
-        glucose,
-        temperature,
-        observations
-    ))
+    """,
+        (
+            link_id,
+            created_by_user_id,
+            food,
+            hygiene,
+            blood_pressure,
+            glucose,
+            temperature,
+            observations,
+        ),
+    )
 
     return cursor.fetchone()["id"]
 
+
 # BUSCA OS RELATÓRIOS DIÁRIOS DE UM PACIENTE
 def fetch_daily_reports_by_patient(cursor, patient_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
             dr.id,
             dr.food,
@@ -563,9 +640,12 @@ def fetch_daily_reports_by_patient(cursor, patient_id):
         AND dr.active = true
 
         ORDER BY dr.id DESC
-    """, (patient_id,))
+    """,
+        (patient_id,),
+    )
 
     return cursor.fetchall()
+
 
 # BUSCA TODOS OS RELATÓRIOS DE TODOS OS PACIENTES
 def fetch_all_daily_reports(cursor):
@@ -604,19 +684,25 @@ def fetch_all_daily_reports(cursor):
 
     return cursor.fetchall()
 
+
 # ATUALIZA O RELATORIO
 def update_daily_report(cursor, report_id, fields, values):
     params = values + [report_id]
 
-    cursor.execute(f"""
+    cursor.execute(
+        f"""
         UPDATE daily_reports
         SET {", ".join(fields)}
         WHERE ID = %s
-    """, params)
+    """,
+        params,
+    )
+
 
 # BUSCA UM RELATÓRIO DIÁRIO PELO ID
 def fetch_daily_report_by_id(cursor, report_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
             dr.id,
             dr.link_id,
@@ -639,70 +725,71 @@ def fetch_daily_report_by_id(cursor, report_id):
             ON cpl.id = dr.link_id
 
         WHERE dr.id = %s
-    """, (report_id,))
+    """,
+        (report_id,),
+    )
 
     return cursor.fetchone()
 
+
 # DESATIVA O RELATORIO
 def set_daily_report_inactive(cursor, report_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         UPDATE daile_reports
         SET active = false
         WHERE id = %s
-    """, (report_id,))
+    """,
+        (report_id,),
+    )
+
 
 # VERIFICA SE EXISTE UMA ADMINISTRACAO NO MESMO HORARIO
 def get_existing_administration(cursor, medicine_id, link_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT id
         FROM medicine_administrations
         WHERE medicine_id = %s
         AND link_id = %s
         AND administration_date = CURRENT_DATE
         AND EXTRACT(HOUR FROM administration_time) =
-            EXCTRACT(HOUR FROM CURRENT_TIME)
+            EXTRACT(HOUR FROM CURRENT_TIME)
         AND EXTRACT(MINUTE FROM administration_time) =
-            EXCTRACT(MINUTE FROM CURRENT_TIME)
+            EXTRACT(MINUTE FROM CURRENT_TIME)
         AND active = true
-    """,(
-        medicine_id,
-        link_id
-    ))
+    """,
+        (medicine_id, link_id),
+    )
 
     return cursor.fetchone()
 
+
 # REGISTRAR ADMINISTRACAO
 def create_medicine_administration(
-        cursor,
-        medicine_id,
-        link_id,
-        created_by_user_id,
-        dosage_given,
-        schedule_time,
-        notes
+    cursor, medicine_id, link_id, created_by_user_id, dosage_given, schedule_time, notes
 ):
-    cursor.execute("""
+    cursor.execute(
+        """
         INSERT INTO medicine_administrations
-            medicine_id,
-            link_id,
-            created_by_user_id,
-            dosage_given,
-            schedule_time,
-            notes,
-            administration_date,
-            administration_time
+            (
+                medicine_id,
+                link_id,
+                created_by_user_id,
+                dosage_given,
+                schedule_time,
+                notes,
+                administration_date,
+                administration_time
+            )
         VALUES (%s, %s, %s, %s, %s, %s, CURRENT_DATE, CURRENT_TIME)
         RETURNING id
-    """,(
-        medicine_id,
-        link_id,
-        created_by_user_id,
-        dosage_given,
-        schedule_time,
-        notes
-    ))
+    """,
+        (medicine_id, link_id, created_by_user_id, dosage_given, schedule_time, notes),
+    )
 
     return cursor.fetchone()["id"]
+
 
 # BUSCA TODAS AS ADMINISTRAÇÕES DE MEDICAMENTOS
 def fetch_all_medicine_administrations(cursor):
@@ -747,9 +834,11 @@ def fetch_all_medicine_administrations(cursor):
 
     return cursor.fetchall()
 
+
 # BUSCA ADMINISTRACAO POR PACIENTE
 def fetch_medicine_administrations_by_patient(cursor, patient_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
             ma.id,
             ma.medicine_id,
@@ -788,9 +877,12 @@ def fetch_medicine_administrations_by_patient(cursor, patient_id):
         WHERE cpl.patient_id = %s
 
         ORDER BY ma.id DESC
-    """, (patient_id,))
+    """,
+        (patient_id,),
+    )
 
     return cursor.fetchall()
+
 
 # BUSCAR ADMINISTRACAO POR CUIDADOR
 def fetch_medicine_administrations_by_caregiver(cursor, caregiver_id):
@@ -798,10 +890,11 @@ def fetch_medicine_administrations_by_caregiver(cursor, caregiver_id):
         """
         SELECT
             ma.id,
-            ma.patient_id,
+            cp.patient_id,
             ma.medicine_id,
             ma.schedule_time,
             ma.administration_time,
+            ma.administration_date,
             ma.dosage_given,
             ma.notes,
             ma.active,
@@ -814,13 +907,13 @@ def fetch_medicine_administrations_by_caregiver(cursor, caregiver_id):
             u.name AS created_by_user_name,
             u.role AS created_by_user_role
 
-        FROM medicine_administration ma
+        FROM medicine_administrations ma
 
-        JOIN caregivers_patient cp
-            ON cp.patient_id = ma.patient_id
+        JOIN caregiver_patient_links cp
+            ON cp.id = ma.link_id
 
         JOIN users p
-            ON p.id = ma.patient_id
+            ON p.id = cp.patient_id
 
         JOIN medicines m
             ON m.id = ma.medicine_id
@@ -837,38 +930,56 @@ def fetch_medicine_administrations_by_caregiver(cursor, caregiver_id):
 
     return cursor.fetchall()
 
+
 # BUSCA ADMINISTRACAO POR ID
 def fetch_medicine_administration_by_id(cursor, administration_id):
-    cursor.execute("""
+    cursor.execute(
+        """
         SELECT
-            id,
-            patient_id,
-            medicine_id,
-            created_by_user_id,
-            schedule_time,
-            dosage_given,
-            notes,
-            active
-        FROM medicine_administrations
-        WHERE id %s
-    """,(administration_id,))
+            ma.id,
+            ma.link_id,
+            ma.medicine_id,
+            cpl.patient_id,
+            ma.created_by_user_id,
+            ma.schedule_time,
+            ma.dosage_given,
+            ma.notes,
+            ma.active
+        FROM medicine_administrations ma
+
+        JOIN caregiver_patient_links cpl
+            ON ma.link_id = cpl.id
+
+        WHERE ma.id = %s
+    """,
+        (administration_id,),
+    )
 
     return cursor.fetchone()
 
+
 # ATUALIZA A ADMINISTRACOES
 def update_medicine_administration(cursor, fields, values):
-    cursor.execute(f"""
-        UPDATE medicine_administration
+    cursor.execute(
+        f"""
+        UPDATE medicine_administrations
         SET {", ".join(fields)}
         WHERE id = %s
-    """, values)
+    """,
+        values,
+    )
+
 
 def set_medicine_administration_inactive(cursor, administration_id):
-    cursor.execute("""
-        UPDATE medicine_administration
+    cursor.execute(
+        """
+        UPDATE medicine_administrations
         SET active = FALSE
         WHERE id = %s
-    """, (administration_id,))
+    """,
+        (administration_id,),
+    )
+
 
 # BUSCA ADMINISTRAÇÕES DE UM PACIENTE VINCULADO AO CUIDADOR
 def fetch_medicine_administrations_by_caregiver_and_patient(
@@ -919,6 +1030,7 @@ def fetch_medicine_administrations_by_caregiver_and_patient(
     )
 
     return cursor.fetchall()
+
 
 # REATIVAR VINCULO
 def reactive_link(cursor, link_id):

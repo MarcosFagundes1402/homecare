@@ -24,12 +24,12 @@ from utils.response import (
 )
 
 administration_medications_bp = Blueprint(
-    "medicine_administration", __name__, url_prefix="/medicine_adminitration"
+    "medicine_administration", __name__, url_prefix="/medicine-administrations"
 )
 
 
 # CRIA O REGISTRO DA ADMINISTRACAO DO MEDICAMENTO
-@administration_medications_bp.route("", methods=["POST"])
+@administration_medications_bp.route("/create-administration", methods=["POST"])
 @jwt_required()
 @roles_required("admin", "caregiver")
 def register_administration():
@@ -74,7 +74,7 @@ def register_administration():
             return jsonify({"error": "Medicamento não encontrado."}), 404
 
         # VERIFICA SE O MEDICAMENTO PERTENCE AO PACIENTE
-        if medicine["patient_id"] != data["patient_id"]:
+        if int(medicine["patient_id"]) != int(data["patient_id"]):
             return jsonify(
                 {"error": "Este medicamento não pertence ao paciente informado."}
             ), 400
@@ -142,6 +142,7 @@ def register_administration():
             link_id,
             user_id,
             data["dosage_given"],
+            data["schedule_time"],
             data.get("notes"),
         )
 
@@ -179,7 +180,7 @@ def register_administration():
 
 
 # LISTAR TODOS AS ADMINISTRAÇÕES
-@administration_medications_bp.route("", methods=["GET"])
+@administration_medications_bp.route("/list-all-administrations", methods=["GET"])
 @jwt_required()
 @roles_required("admin")
 def list_administrations():
@@ -209,7 +210,7 @@ def list_administrations():
                     "dosage_given": administration["dosage_given"],
                     "notes": administration["notes"],
                     "administration_date": administration["administration_date"],
-                    "administration_time": administration["administration_time"],
+                    "administration_time": administration["administration_time"].isoformat(),
                     "active": administration["active"],
                     "created_by_user": {
                         "id": administration["created_by_user_id"],
@@ -219,7 +220,7 @@ def list_administrations():
                 }
             )
 
-        return jsonify({"administrations": []}), 200
+        return jsonify({"administrations": administration_list}), 200
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -230,7 +231,7 @@ def list_administrations():
 
 
 # PACIENTE CONSULTA O PROPRIO HISTORICO
-@administration_medications_bp.route("", methods=["GET"])
+@administration_medications_bp.route("/my-administrations", methods=["GET"])
 @jwt_required()
 @roles_required("patient")
 def my_administrations():
@@ -298,7 +299,7 @@ def my_administrations():
 
 
 # CUIDADOR CONSULTA O HISTORICO DOS PROPRIOS PACIENTES
-@administration_medications_bp.route("", methods=["GET"])
+@administration_medications_bp.route("/my-patients-administrations", methods=["GET"])
 @jwt_required()
 @roles_required("caregiver")
 def my_patients_history():
@@ -357,7 +358,7 @@ def my_patients_history():
 
 
 # EDITAR ADMINISTRACAO DE MEDICAMENTOS
-@administration_medications_bp.route("/<int:administration_id>", methods=["PATCH"])
+@administration_medications_bp.route("/edit-administration/<int:administration_id>", methods=["PATCH"])
 @jwt_required()
 @roles_required("admin", "caregiver")
 def edit_administration(administration_id):
@@ -398,15 +399,10 @@ def edit_administration(administration_id):
             ), 403
 
         # CAMPOS OBRIGATORIOS
-        required_fields = ["dosage_given", "notes"]
-
-        error = validate_required_fields(data, required_fields)
-
-        if error:
-            return jsonify({"error": error}), 400
+        allowed_fields = ["dosage_given", "notes"]
 
         # CAMPOS QUE NAO PODEM ESTAR VAZIO
-        non_empty_fields = ["dosage_given", "notes"]
+        non_empty_fields = ["dosage_given"]
 
         error = validate_non_empty_fields(data, non_empty_fields)
 
@@ -416,9 +412,16 @@ def edit_administration(administration_id):
         fields = []
         values = []
 
-        for field in required_fields:
-            fields.append(f"{field} = %s")
-            values.append(data[field])
+        for field in data:
+            if field not in allowed_fields:
+                return jsonify({
+                    "error": "Campo não permitido para edição."
+                }), 400
+
+        for field in allowed_fields:
+            if field in data:
+                fields.append(f"{field} = %s")
+                values.append(data[field])
 
         values.append(administration_id)
 
@@ -446,7 +449,7 @@ def edit_administration(administration_id):
 
 
 # DESATIVAR REGISTRO DE ADMINISTRACAO
-@administration_medications_bp.route("/<int:administration_id>", methods=["DELETE"])
+@administration_medications_bp.route("/disable/<int:administration_id>", methods=["DELETE"])
 @jwt_required()
 @roles_required("admin", "caregiver")
 def disable_administration(administration_id):
@@ -466,6 +469,8 @@ def disable_administration(administration_id):
 
         # VERIFICA SE A ADMINISTRACAO EXISTE
         administration = fetch_medicine_administration_by_id(cursor, administration_id)
+
+        print(administration)
 
         if not administration:
             return jsonify({"error": "Administração não encontrada."}), 404

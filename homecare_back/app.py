@@ -1,12 +1,14 @@
 import os
 
-from dotenv import load_dotenv
 from flask import Flask
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from routes import register_routes
+from utils.json_provider import CustomJSONProvider
 
 app = Flask(__name__)
+
+app.json = CustomJSONProvider(app)
 
 CORS(
     app,
