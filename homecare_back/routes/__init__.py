@@ -6,6 +6,7 @@ from routes.caregiver_patient_links import caregiver_patient_bp
 from routes.medicine import medicines_bp
 from routes.medicine_administration import administration_medications_bp
 from routes.daily_reports import daily_reports_bp
+from routes.refresh import refresh_bp
 
 
 def register_routes(app):
@@ -17,3 +18,4 @@ def register_routes(app):
     app.register_blueprint(medicines_bp)
     app.register_blueprint(administration_medications_bp)
     app.register_blueprint(daily_reports_bp)
+    app.register_blueprint(refresh_bp)

@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from database.connect import connect
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, create_refresh_token
 from werkzeug.security import check_password_hash
 from utils.queries import get_user_by_email
 
@@ -60,13 +60,18 @@ def login():
         user_dict = dict(user)
         user_dict.pop("password_hash")
 
-        token = create_access_token(
+        access_token = create_access_token(
+            identity=str(user_dict["id"])
+        )
+
+        refresh_token = create_refresh_token(
             identity=str(user_dict["id"])
         )
 
         return jsonify({
             "message": "Login realizado com sucesso.",
-            "token": token,
+            "access_token": access_token,
+            "refresh_token": refresh_token,
             "user": user_dict
         }), 200
 
