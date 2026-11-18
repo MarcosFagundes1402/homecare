@@ -131,7 +131,7 @@ def create_link():
 
 
 # MOSTRA OS PACIENTES QUE O CUIDADOR TEM
-@caregiver_patient_bp.route("/<int:user_id>/list-patient_caregiver", methods=["GET"])
+@caregiver_patient_bp.route("/<int:user_id>/list-patient-caregiver", methods=["GET"])
 @jwt_required()
 @roles_required("admin")
 def list_caregiver_patients(user_id):

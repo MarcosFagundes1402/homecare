@@ -521,7 +521,7 @@ def disable_administration(administration_id):
             connection.close()
 
 @administration_medications_bp.route(
-    "/<int:patient_id>", methods=["GET"]
+    "/admin/<int:patient_id>", methods=["GET"]
 )
 @jwt_required()
 @roles_required("admin")
